@@ -1,0 +1,15 @@
+node_modules
+dist
+.DS_Store
+*.log
+.env
+.vscode
+.idea
+
+# Python venv
+venv-image-gen/
+
+# User data (optional: remove these lines if you want to track sample docs/images)
+documents/
+generated-images/
+image-settings.json

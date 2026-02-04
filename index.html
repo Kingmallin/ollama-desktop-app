@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ollama Desktop App</title>
+    <script>
+      // Prevent default drag behavior immediately to allow file drops
+      // This must run before React loads to catch all drag events
+      (function() {
+        const preventDefaults = function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+        };
+        
+        // Add listeners as soon as possible
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('dragover', preventDefaults, false);
+            document.addEventListener('drop', preventDefaults, false);
+            window.addEventListener('dragover', preventDefaults, false);
+            window.addEventListener('drop', preventDefaults, false);
+          });
+        } else {
+          document.addEventListener('dragover', preventDefaults, false);
+          document.addEventListener('drop', preventDefaults, false);
+          window.addEventListener('dragover', preventDefaults, false);
+          window.addEventListener('drop', preventDefaults, false);
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

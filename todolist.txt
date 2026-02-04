@@ -1,0 +1,243 @@
+# Ollama Desktop App - Feature Enhancement TODO List
+
+## High Priority Features
+
+### 1. Multi-Language Code Sandbox (Free & Local)
+- [ ] Refactor sandbox to support language detection and routing
+- [ ] Add language runtime detection (check if interpreter/compiler is installed)
+- [ ] Implement auto-installation guide for missing runtimes
+- [ ] Add Python support (python3) - Already implemented
+- [ ] Add JavaScript/Node.js support (node) - Already implemented
+- [ ] Add PHP support (php) - Already implemented
+- [x] Add Ruby support (ruby)
+- [x] Add Go support (go run)
+- [ ] Add Rust support (rustc/cargo)
+- [ ] Add C/C++ support (gcc/clang)
+- [ ] Add Java support (javac/java)
+- [ ] Add C# support (dotnet/csharp)
+- [ ] Add TypeScript support (ts-node)
+- [ ] Add R support (Rscript)
+- [ ] Add Lua support (lua)
+- [ ] Add Perl support (perl)
+- [ ] Add Bash/Shell support (bash/sh)
+- [ ] Add Swift support (swift)
+- [ ] Add Kotlin support (kotlinc)
+- [ ] Add Julia support (julia)
+- [ ] Add Dart support (dart)
+- [ ] Add Haskell support (ghc/runhaskell)
+- [ ] Add Scala support (scala)
+- [ ] Add Clojure support (clojure)
+- [ ] Add Elixir support (elixir)
+- [ ] Add Erlang support (erlang)
+- [ ] Create language configuration system (file extensions, commands, args)
+- [ ] Add language-specific timeout configurations
+- [ ] Implement language-specific security restrictions
+- [ ] Add language detection from code blocks
+- [ ] Create language status indicator (available/not available)
+- [ ] Add language installation instructions/links
+- [ ] Support multi-file projects (for compiled languages)
+- [ ] Add dependency management (package.json, requirements.txt, etc.)
+- [ ] Create language runtime manager UI
+- [ ] Add language-specific code templates/examples
+
+### 2. Conversation History/Sessions
+- [ ] Create conversation storage system (local JSON/database)
+- [ ] Add "New Conversation" button
+- [ ] Implement conversation list in sidebar
+- [ ] Add conversation naming/renaming
+- [ ] Auto-save conversations
+- [ ] Add conversation search/filter
+- [ ] Implement conversation deletion
+- [ ] Add conversation export functionality
+
+### 3. Image Gallery
+- [ ] Create image gallery component
+- [ ] List all generated images from generated-images directory
+- [ ] Add image preview/lightbox
+- [ ] Implement image filtering (by date, prompt, model)
+- [ ] Add image deletion functionality
+- [ ] Show image metadata (prompt, date, method)
+- [ ] Add image search functionality
+- [ ] Create gallery route/page
+
+### 4. Prompt Templates
+- [ ] Create prompt template storage system
+- [ ] Build prompt template manager UI
+- [ ] Add template categories/tags
+- [ ] Implement quick insert buttons in chat
+- [ ] Add template editing/creation interface
+- [ ] Support template variables/placeholders
+- [ ] Add template import/export
+- [ ] Create default template library
+
+### 5. Search in Conversations
+- [ ] Implement full-text search across all conversations
+- [ ] Add search UI component
+- [ ] Filter by date range
+- [ ] Filter by model
+- [ ] Highlight search matches
+- [ ] Add search result navigation
+- [ ] Implement search history
+- [ ] Add advanced search filters
+
+### 6. Export Conversations
+- [ ] Add export to Markdown functionality
+- [ ] Add export to PDF functionality
+- [ ] Include images in exports
+- [ ] Add export formatting options
+- [ ] Implement batch export
+- [ ] Add shareable link generation (optional)
+- [ ] Create export preview
+
+## Medium Priority Features
+
+### 7. System Prompt Editor
+- [ ] Create system prompt editor component
+- [ ] Add per-model prompt customization
+- [ ] Create prompt preset templates
+- [ ] Add prompt preview functionality
+- [ ] Implement prompt versioning
+- [ ] Add prompt import/export
+- [ ] Create prompt testing interface
+
+### 8. Keyboard Shortcuts
+- [ ] Implement Cmd/Ctrl+K command palette
+- [ ] Add Cmd/Ctrl+Enter to send message
+- [ ] Add Cmd/Ctrl+/ for shortcuts help
+- [ ] Add Cmd/Ctrl+N for new conversation
+- [ ] Add Cmd/Ctrl+S for save conversation
+- [ ] Add Escape to close modals
+- [ ] Create shortcuts help modal
+- [ ] Add customizable shortcuts
+
+### 9. Model Comparison
+- [ ] Create side-by-side comparison UI
+- [ ] Implement multi-model response generation
+- [ ] Add response quality metrics
+- [ ] Create comparison history
+- [ ] Add response voting/rating
+- [ ] Implement A/B testing interface
+- [ ] Add performance metrics (speed, tokens)
+
+### 10. Token Usage Tracking
+- [ ] Implement token counting per message
+- [ ] Create usage statistics dashboard
+- [ ] Add daily/weekly/monthly stats
+- [ ] Track tokens per model
+- [ ] Add cost estimation (if applicable)
+- [ ] Create usage graphs/charts
+- [ ] Add usage alerts/limits
+
+### 11. Enhanced Error Handling
+- [ ] Create user-friendly error messages
+- [ ] Add retry mechanisms for failed requests
+- [ ] Implement error recovery suggestions
+- [ ] Add error logging system
+- [ ] Create error reporting UI
+- [ ] Add network error detection
+- [ ] Implement graceful degradation
+
+## Nice to Have Features
+
+### 12. Voice Input/Output
+- [ ] Integrate speech-to-text API
+- [ ] Add voice input button
+- [ ] Implement text-to-speech for responses
+- [ ] Add voice command support
+- [ ] Create voice settings/preferences
+- [ ] Add language selection
+- [ ] Implement voice activity detection
+
+### 13. Multi-modal Vision
+- [ ] Add image upload capability
+- [ ] Integrate vision models (LLaVA, etc.)
+- [ ] Implement image analysis interface
+- [ ] Add OCR functionality
+- [ ] Create image annotation tools
+- [ ] Add image-to-text conversion
+- [ ] Support multiple image formats
+
+### 14. Advanced RAG Features
+- [ ] Create embedding visualization
+- [ ] Add chunking strategy configuration
+- [ ] Implement similarity threshold tuning
+- [ ] Add chunk overlap configuration
+- [ ] Create RAG performance metrics
+- [ ] Add document embedding preview
+- [ ] Implement advanced search algorithms
+
+### 15. Settings/Preferences
+- [ ] Create settings page/panel
+- [ ] Add theme customization (light/dark/custom)
+- [ ] Implement default model selection
+- [ ] Add auto-save preferences
+- [ ] Create notification settings
+- [ ] Add language preferences
+- [ ] Implement backup/restore settings
+- [ ] Add advanced configuration options
+
+## Technical Improvements
+
+### Code Quality
+- [ ] Add TypeScript strict mode
+- [ ] Improve error handling consistency
+- [ ] Add unit tests for core features
+- [ ] Implement integration tests
+- [ ] Add code documentation
+- [ ] Optimize bundle size
+- [ ] Improve performance (lazy loading, etc.)
+
+### UI/UX Improvements
+- [ ] Add loading skeletons
+- [ ] Improve responsive design
+- [ ] Add animations/transitions
+- [ ] Enhance accessibility (ARIA labels, keyboard nav)
+- [ ] Improve mobile experience
+- [ ] Add drag-and-drop improvements
+- [ ] Create onboarding tutorial
+
+### Infrastructure
+- [ ] Add database for persistent storage (SQLite)
+- [ ] Implement proper state management (Zustand/Redux)
+- [ ] Add logging system
+- [ ] Create backup/restore functionality
+- [ ] Add update mechanism
+- [ ] Implement analytics (optional, privacy-focused)
+- [ ] Add telemetry (optional, opt-in)
+
+## Notes
+- **Sandbox Philosophy**: All languages must run locally using free, open-source interpreters/compilers
+- **No Cloud Dependencies**: Everything runs on the user's machine - no external API calls for code execution
+- **Auto-Detection**: System should detect available languages and guide users to install missing ones
+- **Security First**: Each language execution is sandboxed with timeouts and resource limits
+- Prioritize features based on user feedback
+- Consider performance impact of each feature
+- Maintain backward compatibility
+- Keep UI clean and intuitive
+- Focus on user value over feature count
+
+## Language Runtime Requirements (for reference)
+All languages use local, free interpreters/compilers:
+- **Python**: python3 (usually pre-installed on Linux/Mac)
+- **JavaScript**: node (Node.js - free, open-source)
+- **PHP**: php (free, open-source)
+- **Ruby**: ruby (free, open-source)
+- **Go**: go (free, open-source from Google)
+- **Rust**: rustc/cargo (free, open-source)
+- **C/C++**: gcc/clang (free, open-source)
+- **Java**: OpenJDK (free, open-source)
+- **C#**: .NET SDK (free, open-source from Microsoft)
+- **TypeScript**: ts-node (npm package)
+- **R**: R (free, open-source)
+- **Lua**: lua (free, open-source)
+- **Perl**: perl (usually pre-installed)
+- **Bash**: bash (usually pre-installed)
+- **Swift**: swift (free, open-source from Apple)
+- **Kotlin**: kotlinc (free, open-source from JetBrains)
+- **Julia**: julia (free, open-source)
+- **Dart**: dart (free, open-source from Google)
+- **Haskell**: ghc (free, open-source)
+- **Scala**: scala (free, open-source)
+- **Clojure**: clojure (free, open-source)
+- **Elixir**: elixir (free, open-source)
+- **Erlang**: erlang (free, open-source)
