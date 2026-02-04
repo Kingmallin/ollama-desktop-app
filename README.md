@@ -2,6 +2,12 @@
 
 A modern desktop application for interacting with locally running Ollama LLM instances. Built with Electron, React, and Node.js.
 
+**How it's set up:** The app runs as an Electron window. The React frontend is served by Vite (port 5173 in dev), and the backend is an Express server (port 3001) that talks to Ollama (port 11434) and handles documents, code execution, and image generation. Run everything with `npm run dev`.
+
+### About this project
+
+This project is an experiment in what we can build with AI-assisted development. **Much of the code is AI-generated.** The goals are to explore that workflow and to **simplify using Ollama and local image generation** in one desktop app—chat with local LLMs, run code, attach documents, and generate images without leaving the window.
+
 ## 📚 Documentation
 
 - **[INSTALLATION.md](./INSTALLATION.md)** - Complete installation and setup guide
@@ -32,7 +38,7 @@ Before installing, ensure you have:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/ollama-desktop-app.git
+git clone https://github.com/Kingmallin/ollama-desktop-app.git
 cd ollama-desktop-app
 ```
 
@@ -134,16 +140,20 @@ npm run build:electron
 
 ```
 ollama-desktop-app/
-├── electron/          # Electron main process and preload scripts
-├── backend/           # Express API routes
+├── electron/           # Electron main process and preload scripts
+├── backend/            # Express API routes
 │   ├── routes/
-│   │   ├── ollama.js  # Ollama API integration
-│   │   └── sandbox.js # Code execution sandbox
-├── src/               # React frontend
+│   │   ├── ollama.js   # Ollama API integration (models, chat)
+│   │   ├── sandbox.js  # Code execution sandbox
+│   │   ├── documents.js # Document upload, RAG, model assignment
+│   │   └── image.js    # Image generation (Ollama + Hugging Face)
+│   └── scripts/       # Python helpers for image generation
+├── src/                # React frontend (Vite + TypeScript)
 │   ├── components/    # React components
 │   ├── App.tsx        # Main app component
 │   └── main.tsx       # React entry point
 ├── package.json
+├── LICENSE            # Personal Use License
 └── README.md
 ```
 
@@ -151,12 +161,25 @@ ollama-desktop-app/
 
 ### Ollama Routes (`/api/ollama`)
 - `GET /models` - Get list of installed models
+- `DELETE /models/:modelName` - Remove a model
 - `POST /install` - Install a new model
 - `POST /chat/stream` - Stream chat completion
-- `POST /chat/stop` - Stop generation (placeholder)
+- `POST /chat/stop` - Stop generation
 
 ### Sandbox Routes (`/api/sandbox`)
-- `POST /execute` - Execute code in sandbox
+- `POST /execute` - Execute code (Python, JavaScript, PHP)
+
+### Documents Routes (`/api/documents`)
+- `GET /` - List documents
+- `POST /upload` - Upload a document
+- `GET /:id/content` - Get document content
+- `POST /search` - Search documents (for RAG)
+- `POST /:id/assign-models` - Assign document to models
+
+### Image Routes (`/api/image`)
+- `POST /generate` - Generate images (Ollama or Hugging Face)
+- `GET /models` - List image models
+- `GET /settings`, `POST /settings` - Image generation settings
 
 ## Security Notes
 
@@ -193,4 +216,6 @@ For more detailed troubleshooting, see **[INSTALLATION.md](./INSTALLATION.md#com
 
 ## License
 
-MIT
+This project is licensed for **personal use only**. See [LICENSE](./LICENSE) for full terms.
+
+Copyright (c) 2026 Aidan John Mallin. Use by organizations or resale requires prior written agreement.

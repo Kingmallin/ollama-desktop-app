@@ -1,7 +1,7 @@
 {
   "name": "ollama-desktop-app",
   "version": "1.0.0",
-  "description": "Local LLM Desktop Application with Ollama Integration",
+  "description": "Desktop app to simplify Ollama and local image generation. AI-assisted build; chat, documents, code execution, and image gen in one place.",
   "main": "electron/main.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:react\" \"wait-on http://localhost:5173 && electron .\"",
@@ -18,8 +18,8 @@
     "llm",
     "desktop"
   ],
-  "author": "",
-  "license": "MIT",
+  "author": "Aidan John Mallin",
+  "license": "SEE LICENSE IN LICENSE",
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.18.2",

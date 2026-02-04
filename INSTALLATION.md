@@ -230,7 +230,7 @@ sudo apt install git
 
 2. **Clone the repository** (if using Git):
    ```powershell
-   git clone https://github.com/yourusername/ollama-desktop-app.git
+   git clone https://github.com/Kingmallin/ollama-desktop-app.git
    cd ollama-desktop-app
    ```
    
@@ -257,7 +257,7 @@ sudo apt install git
 
 2. **Clone the repository** (if using Git):
    ```bash
-   git clone https://github.com/yourusername/ollama-desktop-app.git
+   git clone https://github.com/Kingmallin/ollama-desktop-app.git
    cd ollama-desktop-app
    ```
    
@@ -292,7 +292,7 @@ sudo apt install git
 
 2. **Clone the repository** (if using Git):
    ```bash
-   git clone https://github.com/yourusername/ollama-desktop-app.git
+   git clone https://github.com/Kingmallin/ollama-desktop-app.git
    cd ollama-desktop-app
    ```
    
@@ -611,4 +611,4 @@ To uninstall the Ollama Desktop App:
 
 ---
 
-*Last updated: January 24, 2026*
+*Last updated: February 4, 2026*

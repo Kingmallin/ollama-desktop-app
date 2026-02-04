@@ -28,7 +28,7 @@ Use this checklist to ensure you have everything set up correctly before running
 
 - [ ] **Repository cloned or downloaded**
   ```bash
-  git clone <repository-url>
+  git clone https://github.com/Kingmallin/ollama-desktop-app.git
   cd ollama-desktop-app
   ```
 

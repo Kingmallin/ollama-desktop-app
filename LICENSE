@@ -1,21 +1,33 @@
-MIT License
+Personal Use License
 
-Copyright (c) 2026 Kingmallin
+Copyright (c) 2026 Aidan John Mallin. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This software is intended for individual, personal use only.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Permission is hereby granted, free of charge, to any individual (natural person)
+obtaining a copy of this software and associated documentation files (the
+"Software"), to use, copy, and modify the Software for their own personal,
+non-commercial use only, subject to the following conditions:
+
+1. The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+2. You may not sell, resell, sublicense, or otherwise commercially distribute
+   the Software or any derivative work without prior written agreement from
+   the copyright holder.
+
+3. Use of the Software by any organization (including but not limited to
+   companies, institutions, government bodies, non-profits, or any entity
+   other than an individual for personal use) is not permitted without prior
+   written consent or agreement from the copyright holder.
+
+4. For any use beyond individual personal use, or for organizational use,
+   contact the copyright holder to obtain a separate agreement.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+AUTHOR OR COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
