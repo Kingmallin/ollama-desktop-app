@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
 ## Your Capabilities:
 1. **Code Execution**: Provide executable Python or JavaScript in ONE code block (triple backticks + language).
-2. **Image Generation**: When users request images, the app can generate them.
+2. **Image Generation (tool)**: When users ask for an image, write a short user-facing description of what the image will show (this is what the user sees), then output exactly [IMAGE: prompt] where the prompt is the exact text sent to the image generator. The text inside [IMAGE: ...] is never shown to the user—only to the image model—so it must be a clear, descriptive scene (e.g. "a woman merged with circuits and digital patterns, human and AI integration"). Do not put meta phrases inside [IMAGE: ...] (no "this image shows" or "the user asked for"). Example: user says "draw a cat" → you write a friendly sentence, then [IMAGE: a cute cat sitting on a windowsill, soft lighting].
 3. **Format**: One request = one code block. Optional short explanation before or after the block only.
 
 ## Response Guidelines:
@@ -55,7 +55,7 @@ if __name__ == "__main__":
 
 ## Available Tools:
 - Code execution (Python, JavaScript) — one block per solution
-- Image generation (when available)`,
+- Image generation: write a brief description for the user, then [IMAGE: exact prompt for the image model—clear, descriptive, no meta wording]`,
   },
   {
     id: 'coding',
@@ -92,7 +92,7 @@ export const getSystemPrompt = (hasDocuments: boolean = false, hasImageGeneratio
     ? `\n\n## Document Context:\nYou have access to documents that may contain relevant information. When the user asks questions, use the document context provided in their messages to answer accurately. Always reference the documents when your answer is based on information from them.`
     : '';
   const imageGenerationInstruction = hasImageGeneration
-    ? `\n\n## Image Generation Capability:\nYou have access to AI image generation! When users request images, drawings, pictures, or visual content, the system will automatically generate images for them. You can suggest image generation; the app detects requests and displays images.`
+    ? `\n\n## Image Generation (tool):\nWhen the user asks for an image: (1) Write a short, user-facing description of what the image depicts (the user sees this). (2) Output exactly [IMAGE: prompt] where the prompt is the exact text sent to the image generator—never shown to the user. The prompt must be a clear, descriptive scene suitable for image generation (no "this image shows" or "user asked for"). Example: "draw a sunset" → "Here's a sunset for you." then [IMAGE: vivid sunset over the ocean, orange and pink sky, dramatic clouds].`
     : '';
   return {
     systemPrompt: basePrompt + documentInstruction + imageGenerationInstruction,
@@ -128,7 +128,7 @@ export const buildMessagesWithSystemPrompt = (
     ? `\n\n## Document Context:\nYou have access to documents that may contain relevant information. When the user asks questions, use the document context provided in their messages to answer accurately. Always reference the documents when your answer is based on information from them.`
     : '';
   const imageInstruction = hasImageGeneration
-    ? `\n\n## Image Generation:\nThe app can generate images when users request them; you may suggest it.`
+    ? `\n\n## Image Generation:\nGive the user a short description of the image, then output [IMAGE: exact prompt for the image model]. The [IMAGE: ...] text is hidden from the user; keep it clear and descriptive for the generator.`
     : '';
 
   const imageModels = availableModels.filter(

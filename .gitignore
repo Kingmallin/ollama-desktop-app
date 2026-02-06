@@ -12,4 +12,5 @@ venv-image-gen/
 # User data (optional: remove these lines if you want to track sample docs/images)
 documents/
 generated-images/
+conversations/
 image-settings.json

@@ -69,7 +69,7 @@ const VENV_PIP = path.join(VENV_DIR, 'bin', 'pip');
 const OLLAMA_HOST = process.env.OLLAMA_HOST || 'http://localhost:11434';
 
 // Local image models: all run with same Python env (diffusers + AutoPipelineForText2Image).
-// SD 1.4/1.5 are public; Stability AI 2.x and SDXL are gated — set Hugging Face API key in Image Settings to install/use those.
+// No API key needed for local. SD 1.4/1.5 are public; Stability AI 2.x/SDXL are gated — for those, accept the license on the model page and run: huggingface-cli login (once).
 const LOCAL_IMAGE_MODELS = [
   { id: 'runwayml/stable-diffusion-v1-5', name: 'Stable Diffusion v1.5', size: '~4GB' },
   { id: 'CompVis/stable-diffusion-v1-4', name: 'Stable Diffusion v1.4', size: '~4GB' },

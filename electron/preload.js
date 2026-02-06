@@ -26,10 +26,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     window.addEventListener('electron-file-drop', (event) => {
       callback(event.detail);
     });
-    // Also listen for IPC messages
+    // Also listen for IPC messages (no Node 'path' in preload - contextIsolation limits require)
     ipcRenderer.on('files-dropped', (event, filePaths) => {
-      const path = require('path');
-      callback({ files: filePaths.map(function(p) { return { path: p, name: path.basename(p) }; }) });
+      const basename = (p) => (p.replace(/\\/g, '/').split('/').pop() || p);
+      callback({ files: filePaths.map(function(p) { return { path: p, name: basename(p) }; }) });
     });
   },
   // Remove file drop listener

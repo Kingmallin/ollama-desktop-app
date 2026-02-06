@@ -41,13 +41,13 @@
 - [ ] Add language-specific code templates/examples
 
 ### 2. Conversation History/Sessions
-- [ ] Create conversation storage system (local JSON/database)
-- [ ] Add "New Conversation" button
-- [ ] Implement conversation list in sidebar
+- [x] Create conversation storage system (local JSON/database)
+- [x] Add "New Conversation" button
+- [x] Implement conversation list in sidebar
 - [ ] Add conversation naming/renaming
-- [ ] Auto-save conversations
+- [x] Auto-save conversations
 - [ ] Add conversation search/filter
-- [ ] Implement conversation deletion
+- [x] Implement conversation deletion
 - [ ] Add conversation export functionality
 
 ### 3. Image Gallery

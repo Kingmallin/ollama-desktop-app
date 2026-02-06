@@ -1,32 +1,50 @@
-const { app, BrowserWindow, ipcMain, Menu, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, dialog, screen } = require('electron');
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
-const { spawn } = require('child_process');
 const http = require('http');
+
+const LOG = (...args) => console.log('[Electron]', ...args);
+const LOG_ERR = (...args) => console.error('[Electron]', ...args);
+
+// Disable GPU if env set (fixes blank window on some WSLg setups)
+if (process.env.ELECTRON_DISABLE_GPU === '1') {
+  app.disableHardwareAcceleration();
+  LOG('Hardware acceleration disabled (ELECTRON_DISABLE_GPU=1)');
+}
 
 let mainWindow;
 let expressServer;
 
 // Start Express server for backend API
 function startExpressServer() {
+  LOG('Starting Express server on port 3001...');
   const expressApp = express();
   expressApp.use(cors());
-  expressApp.use(express.json());
+  expressApp.use(express.json({ limit: '10mb' }));
 
   // Import backend routes
   const ollamaRoutes = require('../backend/routes/ollama');
   const sandboxRoutes = require('../backend/routes/sandbox');
   const documentsRoutes = require('../backend/routes/documents');
   const imageRoutes = require('../backend/routes/image');
-  
+  const conversationsRoutes = require('../backend/routes/conversations');
+
   expressApp.use('/api/ollama', ollamaRoutes);
   expressApp.use('/api/sandbox', sandboxRoutes);
   expressApp.use('/api/documents', documentsRoutes);
   expressApp.use('/api/image', imageRoutes);
+  expressApp.use('/api/conversations', conversationsRoutes);
 
   expressServer = expressApp.listen(3001, () => {
-    console.log('Backend server running on http://localhost:3001');
+    LOG('Backend server running on http://localhost:3001');
+  });
+
+  expressServer.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      LOG_ERR('Port 3001 is already in use. Close the other app or change the port.');
+    }
+    LOG_ERR('Backend server error:', err);
   });
 }
 
@@ -410,7 +428,7 @@ ipcMain.handle('show-open-dialog', async (event, options) => {
         }
       }
     } catch (e) {
-      console.log('Could not read /mnt/c/Users:', e.message);
+      // ignore
     }
     
     // Method 3: Try to get from os.homedir() and convert if it's a WSL path
@@ -436,7 +454,6 @@ ipcMain.handle('show-open-dialog', async (event, options) => {
   // Always use Windows path format for Electron's file dialog
   // Electron's dialog.showOpenDialog on Windows expects Windows paths (C:\Users\...)
   defaultPath = getWindowsDocumentsPath();
-  console.log('File dialog default path (initial):', defaultPath);
   
   // Ensure defaultPath is in Windows format (backslashes) for Electron dialog
   // Electron's dialog on Windows expects Windows path format
@@ -452,18 +469,14 @@ ipcMain.handle('show-open-dialog', async (event, options) => {
       const drive = parts[1].toUpperCase();
       const rest = parts.slice(2).join('\\');
       defaultPath = `${drive}:\\${rest}`;
-      console.log('Converted WSL path to Windows path for dialog:', defaultPath);
     }
   }
   
   // Final validation: ensure we have a valid Windows path format
   // If defaultPath doesn't look like a Windows path, use C:\ as fallback
   if (!defaultPath || (!defaultPath.match(/^[A-Za-z]:\\/) && !defaultPath.startsWith('\\\\'))) {
-    console.log('Default path not in Windows format, using C:\\ as fallback');
     defaultPath = 'C:\\';
   }
-  
-  console.log('File dialog final default path:', defaultPath);
   
   const dialogOptions = {
     title: options.title || 'Select Document',
@@ -479,19 +492,12 @@ ipcMain.handle('show-open-dialog', async (event, options) => {
   // Remove properties from options to avoid conflicts
   delete dialogOptions.multiSelect;
   
-  console.log('Opening file dialog with options:', dialogOptions);
-  console.log('Platform:', process.platform);
-  console.log('Default path:', defaultPath);
-  
   const result = await dialog.showOpenDialog(mainWindow, dialogOptions);
-  console.log('File dialog result:', result);
-  
   return result;
 });
 
 // Handle file drops from Windows (works even in WSL because Electron runs on Windows)
 ipcMain.on('file-drop', async (event, filePaths) => {
-  console.log('Files dropped:', filePaths);
   // Forward to renderer
   if (mainWindow) {
     mainWindow.webContents.send('files-dropped', filePaths);
@@ -502,8 +508,6 @@ ipcMain.on('file-drop', async (event, filePaths) => {
 const fs = require('fs').promises;
 ipcMain.handle('read-file', async (event, filePath) => {
   try {
-    console.log('Reading file from path:', filePath);
-    
     // Electron runs in Windows, so it can read Windows paths directly
     // Also try to handle WSL paths if needed
     let normalizedPath = filePath;
@@ -521,7 +525,6 @@ ipcMain.handle('read-file', async (event, filePath) => {
         const drive = parts[1].toUpperCase();
         const rest = parts.slice(2).join('\\');
         const windowsPath = `${drive}:\\${rest}`;
-        console.log('Also trying Windows path format:', windowsPath);
         pathsToTry.push(windowsPath);
       }
     } else if (filePath.match(/^[A-Za-z]:[\\\/]/)) {
@@ -530,7 +533,6 @@ ipcMain.handle('read-file', async (event, filePath) => {
       
       // Also try WSL path format
       const wslPath = filePath.replace(/^([A-Za-z]):[\\\/]/, '/mnt/$1/').replace(/\\/g, '/');
-      console.log('Also trying WSL path format:', wslPath);
       pathsToTry.push(wslPath);
     } else {
       // Other paths - try as-is
@@ -546,10 +548,8 @@ ipcMain.handle('read-file', async (event, filePath) => {
       try {
         fileBuffer = await fs.readFile(tryPath);
         usedPath = tryPath;
-        console.log('Successfully read file from:', tryPath);
         break;
       } catch (err) {
-        console.log(`Failed to read from path "${tryPath}":`, err.message);
         lastError = err;
         continue;
       }
@@ -578,9 +578,24 @@ ipcMain.handle('read-file', async (event, filePath) => {
 });
 
 function createWindow() {
+  const isDev = process.env.NODE_ENV !== 'production';
+
+  // Center window on primary display (avoids off-screen window on WSLg/multi-monitor)
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const work = primaryDisplay.workArea;
+  const screenWidth = work.width;
+  const screenHeight = work.height;
+  const winWidth = Math.min(1400, screenWidth);
+  const winHeight = Math.min(900, screenHeight);
+  const x = work.x + Math.max(0, Math.floor((screenWidth - winWidth) / 2));
+  const y = work.y + Math.max(0, Math.floor((screenHeight - winHeight) / 2));
+
   mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 900,
+    width: winWidth,
+    height: winHeight,
+    x,
+    y,
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -588,6 +603,41 @@ function createWindow() {
     },
     backgroundColor: '#0f172a',
     titleBarStyle: 'default',
+  });
+
+  // On Linux/WSLg, help window appear on current workspace
+  if (process.platform === 'linux') {
+    mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  }
+
+  mainWindow.once('ready-to-show', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.show();
+      mainWindow.focus();
+      // Force window to front on Linux/WSLg (then stop always-on-top)
+      if (process.platform === 'linux') {
+        mainWindow.setAlwaysOnTop(true);
+        mainWindow.moveTop();
+        setTimeout(() => {
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.setAlwaysOnTop(false);
+            mainWindow.focus();
+          }
+        }, 150);
+      }
+    }
+  });
+
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+    LOG_ERR('webContents did-fail-load:', { errorCode, errorDescription, validatedURL });
+  });
+
+  mainWindow.webContents.on('render-process-gone', (event, details) => {
+    LOG_ERR('webContents render-process-gone:', details);
+  });
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
   });
 
   // Handle file drops at the Electron window level
@@ -615,19 +665,12 @@ function createWindow() {
   });
 
   // Load the app - in development, always use Vite dev server
-  const isDev = process.env.NODE_ENV !== 'production';
-  
   if (isDev) {
-    // Load from Vite dev server (wait-on ensures it's ready)
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
-
-  mainWindow.on('closed', () => {
-    mainWindow = null;
-  });
 
   // Handle file drops from Windows Explorer
   // This is the key - Electron can receive Windows file drops even in WSL
@@ -700,7 +743,7 @@ function createWindow() {
 app.whenReady().then(() => {
   startExpressServer();
   createMenu();
-  
+
   // Wait a moment for Express server to start, then create window
   setTimeout(() => {
     createWindow();

@@ -39,6 +39,15 @@ export const API_ENDPOINTS = {
     ASSIGN_MODELS: (id: string) => `${API_CONFIG.BASE_URL}/api/documents/${id}/assign-models`,
   },
   
+  // Conversations (history/sessions)
+  CONVERSATIONS: {
+    LIST: `${API_CONFIG.BASE_URL}/api/conversations`,
+    GET: (id: string) => `${API_CONFIG.BASE_URL}/api/conversations/${encodeURIComponent(id)}`,
+    CREATE: `${API_CONFIG.BASE_URL}/api/conversations`,
+    UPDATE: (id: string) => `${API_CONFIG.BASE_URL}/api/conversations/${encodeURIComponent(id)}`,
+    DELETE: (id: string) => `${API_CONFIG.BASE_URL}/api/conversations/${encodeURIComponent(id)}`,
+  },
+
   // Image endpoints
   IMAGE: {
     GENERATE: `${API_CONFIG.BASE_URL}/api/image/generate`,
@@ -89,27 +98,6 @@ export const TIMEOUTS = {
   MODEL_INSTALL: 600000, // 10 minutes
   HTTP_REQUEST: 5000, // 5 seconds for HTTP requests
 } as const;
-
-// Image Generation Keywords (user message containing any of these goes straight to image API, not chat)
-export const IMAGE_KEYWORDS = [
-  'generate image',
-  'generate an image',
-  'generate a picture',
-  'generate img',
-  'create image',
-  'create an image',
-  'create a picture',
-  'create img',
-  'create an img',
-  'draw',
-  'make a picture',
-  'make an image',
-  'image of',
-  'img of',
-  'picture of',
-  'show me a picture',
-  'show me an image',
-] as const;
 
 // Supported Code Execution Languages
 export const SUPPORTED_LANGUAGES = {

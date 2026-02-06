@@ -96,7 +96,6 @@ export default function ModelManager({ selectedModel, onModelSelect, onModelsLoa
       // Create abort controller to handle cleanup
       abortController = new AbortController();
       
-      console.log('Starting installation request for:', modelNameToInstall);
       
       const response = await fetch(API_ENDPOINTS.OLLAMA.INSTALL, {
         method: 'POST',
@@ -107,7 +106,6 @@ export default function ModelManager({ selectedModel, onModelSelect, onModelsLoa
         signal: abortController.signal,
       });
 
-      console.log('Response received, status:', response.status, 'content-type:', response.headers.get('content-type'));
 
       // For SSE streams, we need to read the stream even if status isn't 200
       // The error will come through the SSE data
@@ -122,13 +120,11 @@ export default function ModelManager({ selectedModel, onModelSelect, onModelsLoa
       let buffer = '';
       let streamEnded = false;
 
-      console.log('Starting to read SSE stream...');
 
       while (!streamEnded) {
         const { done, value } = await reader.read();
         
         if (done) {
-          console.log('Stream ended (done=true)');
           streamEnded = true;
           break;
         }
@@ -146,7 +142,6 @@ export default function ModelManager({ selectedModel, onModelSelect, onModelsLoa
               const jsonStr = trimmedLine.slice(6);
               const data = JSON.parse(jsonStr);
               
-              console.log('Received progress update:', data);
               
               if (data.type === 'progress') {
                 const progress = Math.max(0, Math.min(100, data.progress || 0));
@@ -213,7 +208,6 @@ export default function ModelManager({ selectedModel, onModelSelect, onModelsLoa
       }
       
       if (error.name === 'AbortError') {
-        console.log('Request was aborted');
         setInstalling(false);
         return;
       }

@@ -338,13 +338,17 @@ router.get('/', async (req, res) => {
 // IMPORTANT: This must be defined BEFORE parameterized routes like /:id
 router.get('/browse', async (req, res) => {
   try {
-    const dirPath = req.query.path || '/mnt/c';
-    
-    // Security: Only allow paths under /mnt/c (Windows drives) or /home (WSL home)
-    if (!dirPath.startsWith('/mnt/') && !dirPath.startsWith('/home/')) {
+    const rawPath = req.query.path || '/mnt/c';
+    const dirPath = path.resolve(path.normalize(rawPath));
+
+    // Security: Only allow paths under /mnt (Windows drives) or /home (WSL home).
+    // Resolve and re-check to prevent traversal (e.g. /mnt/c/../../etc).
+    const allowedRoots = ['/mnt', '/home'];
+    const isUnderAllowedRoot = allowedRoots.some((root) => dirPath === root || dirPath.startsWith(root + path.sep));
+    if (!isUnderAllowedRoot) {
       return res.status(403).json({ error: 'Access denied. Only Windows drives (/mnt/c, /mnt/d, etc.) and WSL home are accessible.' });
     }
-    
+
     try {
       const entries = await fs.readdir(dirPath, { withFileTypes: true });
       const items = [];

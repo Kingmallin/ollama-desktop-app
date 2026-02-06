@@ -122,6 +122,14 @@ export interface Conversation {
   tags?: string[];
 }
 
+/** List item for sidebar (no messages) */
+export interface ConversationSummary {
+  id: string;
+  title: string;
+  model: string;
+  updatedAt: string;
+}
+
 // Prompt Template Types
 export interface PromptTemplate {
   id: string;

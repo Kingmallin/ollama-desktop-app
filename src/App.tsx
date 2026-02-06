@@ -4,10 +4,10 @@ import ChatInterface from './components/ChatInterface';
 import ModelManager from './components/ModelManager';
 import DocumentsPanel from './components/DocumentsPanel';
 import { buildMessagesWithSystemPrompt } from './utils/prompts';
-import { API_ENDPOINTS, LIMITS, IMAGE_KEYWORDS } from './constants';
+import { API_ENDPOINTS, LIMITS } from './constants';
 import SystemPromptSettings from './components/SystemPromptSettings';
 import { getStoredSystemPromptPresetId, getStoredSystemPromptCustom, CUSTOM_PRESET_ID } from './components/SystemPromptSettings';
-import type { Message, Document } from './types';
+import type { Message, Document, ConversationSummary } from './types';
 
 function App() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -23,96 +23,14 @@ function App() {
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [lastUsedDocuments, setLastUsedDocuments] = useState<string[]>([]);
+  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [conversationsLoading, setConversationsLoading] = useState(false);
 
   const handleSendMessage = async (content: string) => {
     if (!selectedModel || !content.trim()) return;
 
-    // Check if this is an image generation request
-    const isImageRequest = IMAGE_KEYWORDS.some(keyword => 
-      content.toLowerCase().includes(keyword)
-    );
-
-    // If it's an image request, handle it separately
-    if (isImageRequest) {
-      try {
-        setIsGeneratingImage(true);
-        setIsGenerating(true);
-        console.log('🎨 Image generation request detected');
-        
-        // Extract prompt (remove image request keywords for cleaner prompt)
-        let prompt = content;
-        for (const keyword of IMAGE_KEYWORDS) {
-          prompt = prompt.replace(new RegExp(keyword, 'gi'), '').trim();
-        }
-        if (!prompt) prompt = content; // Fallback to original if nothing left
-        
-        const response = await fetch(API_ENDPOINTS.IMAGE.GENERATE, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            prompt: prompt.trim(),
-            rewordModel: selectedModel,
-          }),
-        });
-
-        const result = await response.json();
-
-        if (result.success && result.image) {
-          // Add user message and image response
-          const userMsg: Message = {
-            id: (Date.now() - 1).toString(),
-            role: 'user',
-            content,
-            timestamp: new Date(),
-          };
-          
-          const imageMessage: Message = {
-            id: Date.now().toString(),
-            role: 'assistant',
-            content: `Generated image for: "${prompt}"`,
-            imageData: result.image,
-            imageMethod: result.method,
-            timestamp: new Date(),
-          };
-          
-          setMessages((prev) => [...prev, userMsg, imageMessage]);
-        } else {
-          const errorMsg = result.error || 'Unknown error';
-          const suggestion = result.suggestion || 'Check that your image model is installed (Image Settings → Install this model) and try again.';
-          setMessages((prev) => [...prev, {
-            id: (Date.now() - 1).toString(),
-            role: 'user',
-            content,
-            timestamp: new Date(),
-          }, {
-            id: Date.now().toString(),
-            role: 'assistant',
-            content: `Something went wrong while generating the image.\n\n**Error:** ${errorMsg}\n\n**Suggestion:** ${suggestion}\n\nAll images save to the same folder when generation succeeds.`,
-            timestamp: new Date(),
-          }]);
-        }
-      } catch (error: any) {
-        setMessages((prev) => [...prev, {
-          id: (Date.now() - 1).toString(),
-          role: 'user',
-          content,
-          timestamp: new Date(),
-        }, {
-          id: Date.now().toString(),
-          role: 'assistant',
-          content: `Something went wrong.\n\n**Error:** ${error.message}\n\nCheck your connection and that the app is running. If you're using a local model, install it first in Image Settings (Install / Download this model). All images save to the same folder when generation succeeds.`,
-          timestamp: new Date(),
-        }]);
-      } finally {
-        setIsGeneratingImage(false);
-        setIsGenerating(false);
-      }
-      return;
-    }
-
-    setIsGeneratingImage(false);
+    // All messages go to the AI; image generation is a tool the AI invokes by outputting a prompt (see extractImagePrompt after stream).
     // Search documents for relevant context if we have documents assigned to this model
     let ragContext = '';
     if (documents.length > 0 && selectedModel) {
@@ -121,10 +39,6 @@ function App() {
         const assignedDocs = documents.filter((doc: Document) => 
           doc.assignedModels && doc.assignedModels.includes(selectedModel)
         );
-        
-        console.log(`🔍 RAG: Searching in ${assignedDocs.length} documents assigned to "${selectedModel}"`);
-        console.log(`🔍 RAG: Assigned documents:`, assignedDocs.map((d: Document) => d.name));
-        console.log(`🔍 RAG: Search query: "${content}"`);
         
         if (assignedDocs.length > 0) {
           // Try to search first, but if no results, still include all assigned documents
@@ -140,16 +54,12 @@ function App() {
             });
             const searchResult = await searchResponse.json();
             
-            console.log('🔍 RAG: Search results:', searchResult);
-            
             if (searchResult.success && searchResult.results.length > 0) {
               // Filter results to only include documents assigned to current model
               const assignedResults = searchResult.results.filter((result: { id: string; name: string }) => {
                 const doc = assignedDocs.find((d: Document) => d.id === result.id);
                 return doc !== undefined;
               });
-              
-              console.log(`🔍 RAG: ${assignedResults.length} search results match assigned documents`);
               
               if (assignedResults.length > 0) {
                 // Use chunks from search results (more precise than full documents)
@@ -164,7 +74,6 @@ function App() {
                     );
                     const combinedChunks = `From document "${result.name}" (${topChunks.length} relevant sections):\n${chunkTexts.join('\n\n---\n\n')}`;
                     docContents.push(combinedChunks);
-                    console.log(`✅ Using ${topChunks.length} chunks from ${result.name} (relevance: ${(result as any).relevance})`);
                   } else {
                     // Fallback: if no chunks, fetch full content (for backwards compatibility)
                     try {
@@ -176,11 +85,10 @@ function App() {
                             !contentData.content.includes('Failed to extract')) {
                           const docContent = contentData.content.substring(0, LIMITS.MAX_DOCUMENT_PREVIEW_LENGTH);
                           docContents.push(`From document "${result.name}":\n${docContent}`);
-                          console.log(`✅ Fallback: Extracted ${docContent.length} chars from ${result.name}`);
                         }
                       }
                     } catch (error) {
-                      console.error(`❌ Error fetching content for document ${result.id}:`, error);
+                      console.error(`Error fetching content for document ${result.id}:`, error);
                     }
                   }
                 }
@@ -192,7 +100,6 @@ function App() {
           
           // If search didn't find results, include all assigned documents (up to limit to avoid token limits)
           if (docContents.length === 0 && assignedDocs.length > 0) {
-            console.log(`🔍 RAG: No search matches, including all ${assignedDocs.length} assigned documents`);
             const docsToInclude = assignedDocs.slice(0, LIMITS.MAX_DOCUMENTS_PER_QUERY);
             const allDocContents = await Promise.all(
               docsToInclude.map(async (doc: Document) => {
@@ -204,19 +111,16 @@ function App() {
                     if (contentData.content.includes('text extraction requires') || 
                         contentData.content.includes('File:') ||
                         contentData.content.includes('Failed to extract')) {
-                      console.warn(`⚠️ Document ${doc.name} has no extractable content:`, contentData.content);
                       return '';
                     }
                     // Use up to max document content length
                     const docContent = contentData.content.substring(0, LIMITS.MAX_DOCUMENT_CONTENT_LENGTH);
-                    console.log(`✅ Extracted ${docContent.length} chars from ${doc.name}`);
                     return `From document "${doc.name}":\n${docContent}`;
                   } else {
-                    console.warn(`⚠️ Document ${doc.name} extraction failed:`, contentData.error || 'No content');
                     return '';
                   }
                 } catch (error) {
-                  console.error(`❌ Error fetching content for document ${doc.id}:`, error);
+                  console.error(`Error fetching content for document ${doc.id}:`, error);
                   return '';
                 }
               })
@@ -251,23 +155,13 @@ function App() {
                         totalContext.trim() + 
                         '\n\n=== END OF DOCUMENT CONTEXT ===\n\nPlease use the information from the documents above to answer the user\'s question.';
             
-            console.log(`✅ RAG: Added context from ${usedDocuments.length} documents (${ragContext.length} chars)`);
-            console.log(`✅ RAG: Documents used:`, usedDocuments);
-            console.log(`✅ RAG: Context preview:`, ragContext.substring(0, 200) + '...');
-            
             // Store which documents were used for this message
             setLastUsedDocuments(usedDocuments);
-          } else {
-            console.log('⚠️ RAG: No document content could be extracted');
           }
-        } else {
-          console.log(`RAG: No documents assigned to model ${selectedModel}`);
         }
       } catch (error) {
         console.error('Error searching documents:', error);
       }
-    } else {
-      console.log(`RAG: Skipped - documents: ${documents.length}, model: ${selectedModel}`);
     }
 
     const userMessage: Message = {
@@ -286,20 +180,10 @@ function App() {
     setAbortController(controller);
 
     try {
-      console.log('📤 Sending chat request to:', API_ENDPOINTS.OLLAMA.CHAT_STREAM);
-      
       // Add RAG context to the user message - make it very clear
       const userContentWithContext = ragContext 
         ? `${content}\n\n${ragContext}` 
         : content;
-      
-      // Log what we're sending
-      if (ragContext) {
-        console.log('📤 RAG Context being sent:', ragContext.substring(0, 500) + '...');
-        console.log('📤 Full user message length:', userContentWithContext.length);
-      } else {
-        console.log('📤 No RAG context - user message only');
-      }
       
       const response = await fetch(API_ENDPOINTS.OLLAMA.CHAT_STREAM, {
         method: 'POST',
@@ -326,9 +210,6 @@ function App() {
         signal: controller.signal,
       });
 
-      console.log('Response status:', response.status, response.statusText);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Response error:', errorText);
@@ -354,12 +235,16 @@ function App() {
 
       setMessages((prev) => [...prev, assistantMessage]);
       
-      // Only trigger image generation when the assistant explicitly says they are generating an image
-      // (e.g. "I'll generate an image of..."). Do NOT trigger on code, variable names, or explanations
-      // that merely mention "image" (e.g. "this code loads an image" or "the image variable").
+      // Image generation is a tool: the AI decides when to generate and outputs a prompt (structured or natural language).
       const extractImagePrompt = (text: string): string | null => {
         const textWithoutCode = text.replace(/```[\s\S]*?```/g, '').trim();
         if (!textWithoutCode) return null;
+
+        // Structured tool call: [IMAGE: reworded prompt]
+        const structuredMatch = textWithoutCode.match(/\[IMAGE:\s*([^\]]+)\]/i);
+        if (structuredMatch && structuredMatch[1].trim().length > 2) {
+          return structuredMatch[1].trim();
+        }
 
         const looksLikeCode = (s: string): boolean => {
           const t = s.trim();
@@ -458,7 +343,6 @@ function App() {
         if (finalContent) {
           const imagePrompt = extractImagePrompt(finalContent);
           if (imagePrompt) {
-            console.log('🎨 Detected image generation request in assistant response:', imagePrompt);
             setIsGeneratingImage(true);
             // Update the assistant message with the final content first (if not already updated)
             setMessages((prev) =>
@@ -494,7 +378,6 @@ function App() {
                       : msg
                   )
                 );
-                console.log('✅ Image generated and added to message');
               } else {
                 const errMsg = imageResult.error || 'Unknown error';
                 const suggestion = imageResult.suggestion || 'Try installing the model in Image Settings (Install / Download this model).';
@@ -543,6 +426,8 @@ function App() {
       setIsGenerating(false);
       setIsGeneratingImage(false);
       setAbortController(null);
+      // Auto-save after stream completes (delay so state has updated)
+      setTimeout(() => saveCurrentConversation(), 300);
     }
   };
 
@@ -554,8 +439,101 @@ function App() {
     }
   };
 
+  const loadConversations = async () => {
+    setConversationsLoading(true);
+    try {
+      const res = await fetch(API_ENDPOINTS.CONVERSATIONS.LIST);
+      const data = await res.json();
+      setConversations(data.conversations || []);
+    } catch (e) {
+      console.error('Failed to load conversations:', e);
+    } finally {
+      setConversationsLoading(false);
+    }
+  };
+
+  const saveCurrentConversation = async (messagesToSave?: Message[]) => {
+    const msgs = messagesToSave ?? messages;
+    if (msgs.length === 0) return;
+    try {
+      if (currentConversationId) {
+        await fetch(API_ENDPOINTS.CONVERSATIONS.UPDATE(currentConversationId), {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: msgs,
+            model: selectedModel,
+          }),
+        });
+        await loadConversations();
+      } else {
+        const createRes = await fetch(API_ENDPOINTS.CONVERSATIONS.CREATE, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: selectedModel }),
+        });
+        const created = await createRes.json();
+        if (created.id) {
+          setCurrentConversationId(created.id);
+          await fetch(API_ENDPOINTS.CONVERSATIONS.UPDATE(created.id), {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              messages: msgs,
+              model: selectedModel,
+            }),
+          });
+          await loadConversations();
+        }
+      }
+    } catch (e) {
+      console.error('Failed to save conversation:', e);
+    }
+  };
+
+  const handleNewConversation = async () => {
+    if (messages.length > 0 && currentConversationId) {
+      await saveCurrentConversation();
+    }
+    setMessages([]);
+    setCurrentConversationId(null);
+  };
+
+  const handleSelectConversation = async (id: string) => {
+    if (id === currentConversationId) return;
+    if (messages.length > 0 && currentConversationId) {
+      await saveCurrentConversation();
+    }
+    setConversationsLoading(true);
+    try {
+      const res = await fetch(API_ENDPOINTS.CONVERSATIONS.GET(id));
+      const data = await res.json();
+      setMessages(data.messages || []);
+      if (data.model) setSelectedModel(data.model);
+      setCurrentConversationId(id);
+    } catch (e) {
+      console.error('Failed to load conversation:', e);
+    } finally {
+      setConversationsLoading(false);
+    }
+  };
+
+  const handleDeleteConversation = async (id: string) => {
+    try {
+      await fetch(API_ENDPOINTS.CONVERSATIONS.DELETE(id), { method: 'DELETE' });
+      await loadConversations();
+      if (id === currentConversationId) {
+        setMessages([]);
+        setCurrentConversationId(null);
+      }
+    } catch (e) {
+      console.error('Failed to delete conversation:', e);
+    }
+  };
+
   const handleClearConversation = () => {
     setMessages([]);
+    setCurrentConversationId(null);
   };
 
   const handleModelDeleted = () => {
@@ -568,6 +546,11 @@ function App() {
     setModelRefreshTrigger(prev => prev + 1);
   };
 
+  // Load conversation list on mount
+  useEffect(() => {
+    loadConversations();
+  }, []);
+
   // Fetch documents on mount and when model changes
   useEffect(() => {
     const fetchDocuments = async () => {
@@ -575,13 +558,6 @@ function App() {
         const response = await fetch(API_ENDPOINTS.DOCUMENTS.LIST);
         const data = await response.json();
         setDocuments(data.documents || []);
-        console.log('📄 Documents loaded:', data.documents.length);
-        if (selectedModel) {
-          const assigned = data.documents.filter((doc: Document) => 
-            doc.assignedModels && doc.assignedModels.includes(selectedModel)
-          );
-          console.log(`📄 Documents assigned to "${selectedModel}":`, assigned.length, assigned.map((d: Document) => d.name));
-        }
       } catch (error) {
         console.error('Error fetching documents:', error);
       }
@@ -645,7 +621,7 @@ function App() {
       (window as any).electronAPI.onMenuAction((action: string) => {
         switch (action) {
           case 'new-chat':
-            handleClearConversation();
+            handleNewConversation();
             break;
           case 'clear-conversation':
             handleClearConversation();
@@ -713,6 +689,12 @@ function App() {
           selectedModel={selectedModel}
           onModelChange={setSelectedModel}
           onClearConversation={handleClearConversation}
+          onNewConversation={handleNewConversation}
+          onSelectConversation={handleSelectConversation}
+          onDeleteConversation={handleDeleteConversation}
+          conversations={conversations}
+          currentConversationId={currentConversationId}
+          conversationsLoading={conversationsLoading}
           isOpen={sidebarOpen}
           onToggle={() => setSidebarOpen(prev => !prev)}
           onManageDocuments={() => setShowDocumentsPanel(true)}
@@ -724,7 +706,6 @@ function App() {
               const response = await fetch(API_ENDPOINTS.DOCUMENTS.LIST);
               const data = await response.json();
               setDocuments(data.documents || []);
-              console.log('Documents refreshed after assignment change:', data.documents.length);
             } catch (error) {
               console.error('Error refreshing documents:', error);
             }
@@ -766,13 +747,6 @@ function App() {
             const data = await response.json();
             const updatedDocs = data.documents || [];
             setDocuments(updatedDocs);
-            console.log(`Documents refreshed: ${updatedDocs.length} total documents`);
-            // Log document assignments for debugging
-            updatedDocs.forEach((doc: Document) => {
-              if (doc.assignedModels && doc.assignedModels.length > 0) {
-                console.log(`Document "${doc.name}" assigned to: ${doc.assignedModels.join(', ')}`);
-              }
-            });
           } catch (error) {
             console.error('Error fetching documents:', error);
           }

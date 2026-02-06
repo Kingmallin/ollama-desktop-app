@@ -93,6 +93,12 @@ export default function ChatInterface({
     e.target.style.height = `${e.target.scrollHeight}px`;
   };
 
+  // Hide [IMAGE: ...] from display — the prompt is sent to the image generator only; user sees the rest.
+  const displayContent = (content: string, isAssistant: boolean) =>
+    isAssistant
+      ? content.replace(/\[IMAGE:[^\]]*\]/gi, '').replace(/\n{3,}/g, '\n\n').trim()
+      : content;
+
   // Split content into markdown and code blocks
   const splitContent = (content: string) => {
     // Improved regex to match code blocks with optional language
@@ -147,8 +153,8 @@ export default function ChatInterface({
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+    <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-6">
         {messages.length === 0 && (
           <div className="text-center text-dark-muted mt-20">
             <h2 className="text-2xl font-semibold mb-2">Welcome to Ollama Desktop</h2>
@@ -201,7 +207,7 @@ export default function ChatInterface({
                       </div>
                     </div>
                   )}
-                  {splitContent(message.content).map((part, idx) => {
+                  {splitContent(displayContent(message.content, true)).map((part, idx) => {
                     if (part.type === 'code') {
                       return (
                         <CodeBlock
@@ -272,7 +278,7 @@ export default function ChatInterface({
       
       {/* Show which documents were used in the last response */}
       {usedDocuments.length > 0 && !isGenerating && (
-        <div className="border-t border-dark-border px-4 py-2 bg-blue-600/10">
+        <div className="flex-shrink-0 border-t border-dark-border px-4 py-2 bg-blue-600/10">
           <div className="flex items-center gap-2 text-xs">
             <span className="text-blue-400 font-semibold">📄 Using documents:</span>
             <div className="flex flex-wrap gap-1">
@@ -289,7 +295,7 @@ export default function ChatInterface({
         </div>
       )}
 
-      <div className="border-t border-dark-border p-4">
+      <div className="flex-shrink-0 border-t border-dark-border p-4">
         <form onSubmit={handleSubmit} className="flex gap-2">
           <textarea
             ref={inputRef}

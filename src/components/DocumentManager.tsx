@@ -225,11 +225,8 @@ export default function DocumentManager({ onDocumentsChange }: DocumentManagerPr
     e.stopPropagation();
     setIsDragging(false);
 
-    console.log('Drop event triggered', e.dataTransfer.files);
     const files = Array.from(e.dataTransfer.files);
-    console.log('Files dropped:', files.length, files.map(f => ({ name: f.name, type: f.type })));
     if (files.length === 0) {
-      console.log('No files in drop event');
       return;
     }
 
@@ -244,7 +241,6 @@ export default function DocumentManager({ onDocumentsChange }: DocumentManagerPr
       const isPdfByExt = ext === '.pdf';
       const isValidType = allowedTypes.includes(ext) || isPdfByMime;
       
-      console.log('File check:', { fileName, ext, mimeType, isValidType });
       return isValidType;
     });
 

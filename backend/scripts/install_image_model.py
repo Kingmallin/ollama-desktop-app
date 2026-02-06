@@ -49,9 +49,15 @@ def main():
             device = "cpu" if use_cpu else ("cuda" if torch.cuda.is_available() else "cpu")
             dtype = torch.float16 if device == "cuda" else torch.float32
 
+            # Optional: HF_TOKEN/HUGGING_FACE_HUB_TOKEN for gated models (Stability 2.x/SDXL).
+            # For local-only use, no API key needed; for gated models you can run
+            #   huggingface-cli login
+            # once so the download works (no token in this app required).
+            token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
             pipe = AutoPipelineForText2Image.from_pretrained(
                 model_name,
                 torch_dtype=dtype,
+                token=token if token else None,
             )
         finally:
             done.set()

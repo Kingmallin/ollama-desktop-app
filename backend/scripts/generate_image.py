@@ -21,9 +21,11 @@ def generate_image(prompt, model_name, output_dir, use_cpu=False):
         print(f"Using device: {device}", file=sys.stderr, flush=True)
         
         dtype = torch.float16 if device == "cuda" else torch.float32
+        token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
         pipe = AutoPipelineForText2Image.from_pretrained(
             model_name,
             torch_dtype=dtype,
+            token=token if token else None,
         )
         pipe = pipe.to(device)
         

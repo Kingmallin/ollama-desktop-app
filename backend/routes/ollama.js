@@ -16,7 +16,11 @@ function httpGet(url) {
       res.on('data', (chunk) => { data += chunk; });
       res.on('end', () => {
         if (res.statusCode >= 200 && res.statusCode < 300) {
-          resolve(JSON.parse(data));
+          try {
+            resolve(data ? JSON.parse(data) : {});
+          } catch (e) {
+            reject(new Error(`Invalid JSON from Ollama: ${e.message}`));
+          }
         } else {
           reject(new Error(`HTTP ${res.statusCode}: ${res.statusMessage}`));
         }

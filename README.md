@@ -207,6 +207,18 @@ ollama-desktop-app/
   - Find processes using ports: `lsof -i :3001` (macOS/Linux) or `netstat -ano | findstr :3001` (Windows)
   - Kill conflicting processes or change ports in configuration
 
+- **Window doesn’t appear (taskbar shows icon, but no window when you click)**:
+  - **GPU / overlay software**: Tools like **MSI Afterburner** or **RivaTuner Statistics Server** can hook into the graphics stack and prevent the Electron window from rendering. Try closing them and run the app again.
+  - **Disable hardware acceleration**: If the window is still blank or missing, run with:  
+    `ELECTRON_DISABLE_GPU=1 npm run dev`  
+    This uses software rendering and often fixes issues on WSLg or with certain GPU drivers.
+
+- **504 Outdated Request / HMR failed to reload / server connection lost**:
+  - Vite’s Hot Module Replacement (HMR) can hit timeouts or drop the connection when the dev server is slow or the connection is flaky (e.g. under load or on WSL). If you see `504 (Outdated Request)`, `[hmr] Failed to reload`, or `server connection lost. Polling for restart...`:
+    1. **Restart the dev server**: Stop with Ctrl+C and run `npm run dev` again. Reload the app window (Ctrl+R or View → Reload).
+    2. **Avoid many quick saves**: Saving many files in quick succession can trigger multiple HMR updates and 504s; the config uses a longer HMR timeout to reduce this.
+  - If you see `ERR_CONNECTION_REFUSED` on `http://localhost:5173`, the Vite server is not running—start it again with `npm run dev`.
+
 - **Installation errors**: 
   - Ensure Node.js 18+ is installed: `node --version`
   - Clear npm cache: `npm cache clean --force`

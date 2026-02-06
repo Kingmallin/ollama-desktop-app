@@ -129,7 +129,6 @@ export default function ModelInstallDialog({ isOpen, onClose, onInstall, isInsta
     }
     
     if (modelToInstall) {
-      console.log('Installing model:', modelToInstall);
       onInstall(modelToInstall);
       // Reset state
       setCustomModelName('');
