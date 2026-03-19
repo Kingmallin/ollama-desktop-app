@@ -3,13 +3,21 @@ const router = express.Router();
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
-const os = require('os');
+const { getWritableRoot } = require('../paths');
 
-// Create a temporary directory for sandbox execution
-const SANDBOX_DIR = path.join(os.tmpdir(), 'ollama-sandbox');
+/**
+ * Writable code-run folder (not %TEMP%): Windows often deletes empty temp dirs between
+ * sessions, which caused ENOENT on writeFileSync for code_*.py.
+ */
+const SANDBOX_DIR = path.join(getWritableRoot(), 'code-sandbox');
 
-if (!fs.existsSync(SANDBOX_DIR)) {
+function ensureSandboxDir() {
   fs.mkdirSync(SANDBOX_DIR, { recursive: true });
+}
+
+/** Windows installers usually expose `python`, not `python3`. */
+function pythonCommand() {
+  return process.platform === 'win32' ? 'python' : 'python3';
 }
 
 // Execute code in sandbox
@@ -38,31 +46,33 @@ router.post('/execute', async (req, res) => {
   }
 
   try {
-    const timestamp = Date.now();
+    ensureSandboxDir();
+
+    const runId = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
     let fileName, filePath, command, args;
 
     if (lang === 'python') {
-      fileName = `code_${timestamp}.py`;
+      fileName = `code_${runId}.py`;
       filePath = path.join(SANDBOX_DIR, fileName);
-      command = 'python3';
+      command = pythonCommand();
       args = [filePath];
     } else if (lang === 'javascript') {
-      fileName = `code_${timestamp}.js`;
+      fileName = `code_${runId}.js`;
       filePath = path.join(SANDBOX_DIR, fileName);
       command = 'node';
       args = [filePath];
     } else if (lang === 'php') {
-      fileName = `code_${timestamp}.php`;
+      fileName = `code_${runId}.php`;
       filePath = path.join(SANDBOX_DIR, fileName);
       command = 'php';
       args = ['-f', filePath]; // -f = run file (avoids runner echoing source)
     } else if (lang === 'ruby') {
-      fileName = `code_${timestamp}.rb`;
+      fileName = `code_${runId}.rb`;
       filePath = path.join(SANDBOX_DIR, fileName);
       command = 'ruby';
       args = [filePath];
     } else if (lang === 'go') {
-      fileName = `code_${timestamp}.go`;
+      fileName = `code_${runId}.go`;
       filePath = path.join(SANDBOX_DIR, fileName);
       command = 'go';
       args = ['run', filePath];
@@ -85,7 +95,6 @@ router.post('/execute', async (req, res) => {
 
     let stdout = '';
     let stderr = '';
-    let hasError = false;
     let responded = false;
 
     const cleanup = () => {
@@ -123,7 +132,6 @@ router.post('/execute', async (req, res) => {
 
     executionProcess.stderr.on('data', (data) => {
       stderr += data.toString();
-      hasError = true;
     });
 
     executionProcess.on('close', (exitCode) => {
@@ -139,10 +147,11 @@ router.post('/execute', async (req, res) => {
       const hasHtmlFragments = /<\w+[\s\/>]/.test(output);
       const hasHtml = hasFullDocument || hasHtmlFragments;
 
+      // Success follows process exit code only — many runtimes print warnings to stderr (e.g. Python).
       sendResponse({
-        success: exitCode === 0 && !hasError,
+        success: exitCode === 0,
         stdout: stdoutForClient,
-        stderr: stderr || null,
+        stderr: stderr.trim() ? stderr : null,
         exitCode: exitCode,
         html: hasHtml ? output : null,
         isHtml: hasHtml,

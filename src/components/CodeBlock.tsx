@@ -86,7 +86,24 @@ export default function CodeBlock({ code, language }: CodeBlockProps) {
         }),
       });
 
-      const result = await response.json() as CodeExecutionResult;
+      const result = (await response.json()) as CodeExecutionResult & { error?: string };
+      if (!response.ok) {
+        setExecutionResult({
+          success: false,
+          stdout: null,
+          stderr:
+            result.stderr ||
+            result.error ||
+            (typeof (result as { message?: string }).message === 'string'
+              ? (result as { message: string }).message
+              : null) ||
+            `Request failed (${response.status})`,
+          exitCode: null,
+          html: null,
+          isHtml: false,
+        });
+        return;
+      }
       setExecutionResult(result);
       
       // If the result contains HTML, also set it for rendering (wrap fragments for iframe)
@@ -252,17 +269,27 @@ export default function CodeBlock({ code, language }: CodeBlockProps) {
             </div>
           )}
           {executionResult.stderr && (
-            <div className="text-red-400 mb-2">
-              <div className="text-dark-muted mb-1 text-xs">STDERR:</div>
+            <div
+              className={`mb-2 ${executionResult.success ? 'text-amber-400' : 'text-red-400'}`}
+            >
+              <div className="text-dark-muted mb-1 text-xs">
+                {executionResult.success ? 'STDERR (warnings / extra diagnostics; exit ok):' : 'STDERR:'}
+              </div>
               <pre className="whitespace-pre-wrap">{executionResult.stderr}</pre>
-              <p className="text-dark-muted text-xs mt-2">
-                Paste this back to the chat (or use &quot;Copy result for AI&quot;) so the AI can fix the code.
-              </p>
-              {(/\b(parse error|syntax error|unclosed|unexpected|expected|does not match)\b/i.test(executionResult.stderr)) && (
-                <p className="text-dark-muted text-xs mt-1">
-                  This looks like a syntax error. Check for unclosed brackets {'{ }'} or parentheses.
-                </p>
-              )}
+              {!executionResult.success ? (
+                <>
+                  <p className="text-dark-muted text-xs mt-2">
+                    Paste this back to the chat (or use &quot;Copy result for AI&quot;) so the AI can fix the code.
+                  </p>
+                  {/\b(parse error|syntax error|unclosed|unexpected|expected|does not match)\b/i.test(
+                    executionResult.stderr
+                  ) && (
+                    <p className="text-dark-muted text-xs mt-1">
+                      This looks like a syntax error. Check for unclosed brackets {'{ }'} or parentheses.
+                    </p>
+                  )}
+                </>
+              ) : null}
             </div>
           )}
           {executionResult.success && !executionResult.stdout && !executionResult.stderr && (

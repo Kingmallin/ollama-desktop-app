@@ -195,7 +195,7 @@ ollama-desktop-app/
 - Code execution is sandboxed using Node.js `child_process` with restricted permissions
 - Execution has a 10-second timeout
 - Only Python and JavaScript execution is supported
-- Temporary files are automatically cleaned up after execution
+- Run scripts are written under `code-sandbox` in the app’s writable data folder (or repo `code-sandbox/` in dev) and removed after each run
 
 ## Troubleshooting
 
@@ -210,6 +210,8 @@ ollama-desktop-app/
   - Verify Python 3 is installed: `python3 --version`
   - Check Python is in PATH: `which python3` (Linux/macOS) or `where python` (Windows)
   - On Windows, ensure "Add Python to PATH" was checked during installation
+  - Scripts run with cwd = `code-sandbox/` under app data; files your code creates (e.g. `open("out.txt")`) land there — not malicious isolation, just convenience
+  - Warnings on stderr (e.g. Python `DeprecationWarning`) no longer mark the run as failed if the process exits 0
 
 - **Port conflicts**: 
   - Backend runs on port 3001, frontend on 5173

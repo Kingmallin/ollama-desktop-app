@@ -9,6 +9,9 @@ dist
 # Python venv
 venv-image-gen/
 
+# Ephemeral code execution output (dev without Electron uses repo root as writable root)
+code-sandbox/
+
 # User data (optional: remove these lines if you want to track sample docs/images)
 documents/
 generated-images/
