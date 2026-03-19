@@ -25,6 +25,18 @@ export function getStoredSystemPromptCustom(): string {
   return '';
 }
 
+/** One-line preview for the chat “system” bar (reads latest localStorage). */
+export function getSystemPromptBarPreview(): string {
+  const id = getStoredSystemPromptPresetId();
+  if (id === CUSTOM_PRESET_ID) {
+    const c = getStoredSystemPromptCustom().replace(/\s+/g, ' ').trim();
+    if (!c) return 'Custom prompt — click to edit';
+    return c.length > 96 ? `${c.slice(0, 96)}…` : c;
+  }
+  const preset = SYSTEM_PROMPT_PRESETS.find((p) => p.id === id);
+  return preset?.name ?? 'System prompt';
+}
+
 export default function SystemPromptSettings({ isOpen, onClose }: SystemPromptSettingsProps) {
   const [presetId, setPresetId] = useState<string>(() => getStoredSystemPromptPresetId());
   const [customPrompt, setCustomPrompt] = useState<string>(() => getStoredSystemPromptCustom());

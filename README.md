@@ -1,4 +1,4 @@
-# Ollama Desktop App
+# DeskLlama
 
 A modern desktop application for interacting with locally running Ollama LLM instances. Built with Electron, React, and Node.js.
 

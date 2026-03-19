@@ -75,8 +75,8 @@ export default function OllamaSetupPromptModal({
       aria-modal="true"
       aria-labelledby="ollama-setup-title"
     >
-      <div className="mx-4 w-full max-w-lg rounded-lg border border-dark-border bg-dark-surface shadow-xl">
-        <div className="border-b border-dark-border p-4">
+      <div className="mx-4 w-full max-w-lg rounded-lg border border-white/[0.08] bg-dark-surface shadow-desk">
+        <div className="border-b border-white/[0.08] p-4">
           <h2 id="ollama-setup-title" className="text-xl font-semibold text-dark-text">
             Environment status: Ollama
           </h2>
@@ -89,12 +89,12 @@ export default function OllamaSetupPromptModal({
         <div className="max-h-[70vh] overflow-y-auto p-4">
           {loading && !status ? (
             <div className="flex items-center justify-center gap-2 py-8 text-dark-muted">
-              <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-500" />
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent/30 border-t-accent" />
               <span className="text-sm">Checking Ollama…</span>
             </div>
           ) : status ? (
             <div className="space-y-4">
-              <div className="rounded-lg border border-dark-border bg-dark-bg p-4">
+              <div className="rounded-lg border border-white/[0.08] bg-dark-elevated p-4">
                 <h3 className="mb-3 text-sm font-semibold">Ollama (required for chat)</h3>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-dark-muted">Connection:</span>

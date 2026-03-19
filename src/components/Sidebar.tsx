@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import BrandWordmark from './BrandWordmark';
 import ModelDocumentsPanel from './ModelDocumentsPanel';
 import ImageSettings from './ImageSettings';
 import type { ConversationSummary } from '../types';
@@ -6,7 +7,6 @@ import type { ConversationSummary } from '../types';
 interface SidebarProps {
   selectedModel: string;
   onModelChange: (model: string) => void;
-  onClearConversation: () => void;
   onNewConversation?: () => void;
   onSelectConversation?: (id: string) => void;
   onDeleteConversation?: (id: string) => void;
@@ -19,12 +19,12 @@ interface SidebarProps {
   onDocumentsChange?: () => void;
   onOpenImageSettings?: () => void;
   onOpenSystemPrompt?: () => void;
+  onBrowseModels?: () => void;
 }
 
 export default function Sidebar({
   selectedModel,
   onModelChange,
-  onClearConversation,
   onNewConversation,
   onSelectConversation,
   onDeleteConversation,
@@ -37,17 +37,16 @@ export default function Sidebar({
   onDocumentsChange,
   onOpenImageSettings,
   onOpenSystemPrompt,
+  onBrowseModels,
 }: SidebarProps) {
   const [internalIsOpen, setInternalIsOpen] = useState(true);
   const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
   const [showImageSettings, setShowImageSettings] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
   const handleToggle = () => {
-    if (onToggle) {
-      onToggle();
-    } else {
-      setInternalIsOpen(prev => !prev);
-    }
+    if (onToggle) onToggle();
+    else setInternalIsOpen((prev) => !prev);
   };
 
   const formatDate = (iso: string) => {
@@ -61,59 +60,67 @@ export default function Sidebar({
     }
   };
 
+  const navBtn =
+    'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[12.5px] font-medium text-dark-muted transition-all hover:bg-dark-raised hover:text-dark-text';
+  const navBtnActive = 'relative bg-dark-raised text-accent before:absolute before:left-0 before:top-1/4 before:bottom-1/4 before:w-0.5 before:rounded-sm before:bg-accent';
+
   return (
     <>
       {isOpen && (
-        <div className="w-64 bg-dark-surface border-r border-dark-border flex flex-col">
-          <div className="p-4 border-b border-dark-border">
-            <h2 className="text-lg font-semibold">Settings</h2>
+        <aside className="flex w-[210px] shrink-0 flex-col overflow-hidden border-r border-white/[0.06] bg-dark-surface">
+          <div className="flex items-center gap-2.5 border-b border-white/[0.06] px-3.5 pb-3 pt-4">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-desk-blue font-mono text-[12px] font-bold text-black">
+              DL
+            </div>
+            <div className="min-w-0 leading-tight">
+              <div className="leading-tight">
+                <BrandWordmark />
+              </div>
+              <div className="font-mono text-2xs text-dark-dim">local AI workspace</div>
+            </div>
           </div>
-          <div className="flex-1 overflow-y-auto flex flex-col min-h-0">
-            <div className="p-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Selected Model</label>
-                <div className="text-sm text-dark-muted bg-dark-bg p-2 rounded">
-                  {selectedModel || 'None'}
-                </div>
+
+          <nav className="nav-scroll flex flex-1 flex-col gap-0.5 overflow-y-auto px-2 py-2.5">
+            <div className="mb-1">
+              <div className="px-2 pb-1 pt-1.5 font-mono text-[9.5px] font-semibold uppercase tracking-[0.12em] text-dark-dim">
+                Chat
               </div>
               {onNewConversation && (
                 <button
+                  type="button"
                   onClick={onNewConversation}
-                  className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                  className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-lg bg-gradient-to-br from-accent to-desk-blue py-2.5 text-center text-xs font-bold text-black transition-opacity hover:opacity-90"
                 >
-                  ➕ New Conversation
+                  <span>＋</span> New chat
                 </button>
               )}
-              <button
-                onClick={onClearConversation}
-                className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors mb-2"
-              >
-                Clear Conversation
-              </button>
             </div>
 
-            {/* Conversation list */}
-            {onSelectConversation && conversations.length > 0 && (
-              <div className="px-4 pb-2 border-t border-dark-border pt-2">
-                <h3 className="text-sm font-medium text-dark-muted mb-2">Conversations</h3>
+            {onSelectConversation && (
+              <div className="mt-1">
+                <div className="px-2 pb-1 pt-2 font-mono text-[9.5px] font-semibold uppercase tracking-[0.12em] text-dark-dim">
+                  History
+                </div>
                 {conversationsLoading ? (
-                  <p className="text-sm text-dark-muted">Loading...</p>
+                  <p className="px-2 py-2 font-mono text-2xs text-dark-muted">Loading…</p>
+                ) : conversations.length === 0 ? (
+                  <p className="px-2 py-2 text-2xs text-dark-muted">No chats yet</p>
                 ) : (
-                  <ul className="space-y-1 max-h-48 overflow-y-auto">
+                  <ul className="max-h-44 space-y-0.5 overflow-y-auto">
                     {conversations.map((c) => (
-                      <li key={c.id} className="flex items-center gap-1 group">
+                      <li key={c.id} className="group flex items-center gap-0.5">
                         <button
                           type="button"
                           onClick={() => onSelectConversation(c.id)}
-                          className={`flex-1 text-left text-sm px-2 py-1.5 rounded truncate ${
+                          className={`flex-1 truncate rounded-lg px-2.5 py-2 text-left text-[12.5px] transition-colors ${
                             c.id === currentConversationId
-                              ? 'bg-blue-600/30 text-white'
-                              : 'hover:bg-dark-bg text-dark-text'
+                              ? navBtnActive
+                              : 'text-dark-muted hover:bg-dark-raised hover:text-dark-text'
                           }`}
                           title={c.title}
                         >
-                          <span className="block truncate">{c.title || 'New chat'}</span>
-                          <span className="block text-xs opacity-75">{formatDate(c.updatedAt)}</span>
+                          <span className="block truncate font-medium">{c.title || 'New chat'}</span>
+                          <span className="block font-mono text-2xs opacity-70">{formatDate(c.updatedAt)}</span>
                         </button>
                         {onDeleteConversation && (
                           <button
@@ -125,7 +132,7 @@ export default function Sidebar({
                               setDeletingId(null);
                             }}
                             disabled={deletingId === c.id}
-                            className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-600/50 text-red-400 transition-opacity"
+                            className="rounded p-1 text-dark-dim opacity-0 transition-opacity hover:bg-desk-red/10 hover:text-desk-red group-hover:opacity-100"
                             title="Delete"
                             aria-label="Delete conversation"
                           >
@@ -139,47 +146,59 @@ export default function Sidebar({
               </div>
             )}
 
-            <div className="p-4 pt-2 space-y-2">
-            <button
-              onClick={onManageDocuments}
-              className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-            >
-              📄 Manage Documents
-            </button>
-            <button
-              onClick={() => {
-                setShowImageSettings(true);
-                if (onOpenImageSettings) onOpenImageSettings();
-              }}
-              className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
-            >
-              🎨 Image Generation Settings
-            </button>
-            <button
-              onClick={() => onOpenSystemPrompt?.()}
-              className="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
-            >
-              📝 System Prompt
-            </button>
+            <div className="mt-2">
+              <div className="px-2 pb-1 pt-1 font-mono text-[9.5px] font-semibold uppercase tracking-[0.12em] text-dark-dim">
+                Tools
+              </div>
+              <button type="button" onClick={onManageDocuments} className={navBtn}>
+                <span className="w-4 text-center opacity-70">📄</span>
+                Documents
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowImageSettings(true);
+                  onOpenImageSettings?.();
+                }}
+                className={navBtn}
+              >
+                <span className="w-4 text-center opacity-70">🎨</span>
+                Image gen
+              </button>
+              <button type="button" onClick={() => onOpenSystemPrompt?.()} className={navBtn}>
+                <span className="w-4 text-center opacity-70">⚙</span>
+                System prompt
+              </button>
+            </div>
+          </nav>
+
+          <div className="mt-auto flex flex-col gap-2 border-t border-white/[0.06] px-2.5 pb-3.5 pt-2.5">
+            {onBrowseModels && (
+              <button
+                type="button"
+                onClick={onBrowseModels}
+                className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-gradient-to-br from-accent to-desk-blue py-2.5 text-xs font-bold text-black transition-opacity hover:opacity-90"
+              >
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+                  <path d="M8 1v9M4 7l4 4 4-4M2 13h12" />
+                </svg>
+                Browse &amp; install
+              </button>
+            )}
+            <div className="rounded-lg border border-white/[0.08] bg-dark-elevated px-2.5 py-2">
+              <div className="font-mono text-2xs uppercase tracking-wide text-dark-dim">Active model</div>
+              <div className="truncate font-mono text-[11px] font-medium text-accent">{selectedModel || '—'}</div>
+            </div>
+            <ModelDocumentsPanel selectedModel={selectedModel} onDocumentsChange={onDocumentsChange} />
           </div>
-          
-          {/* Document Assignment Section */}
-          <div className="p-4 border-t border-dark-border">
-            <ModelDocumentsPanel 
-              selectedModel={selectedModel}
-              onDocumentsChange={onDocumentsChange}
-            />
-          </div>
-        </div>
-        </div>
+        </aside>
       )}
-      <ImageSettings
-        isOpen={showImageSettings}
-        onClose={() => setShowImageSettings(false)}
-      />
+      <ImageSettings isOpen={showImageSettings} onClose={() => setShowImageSettings(false)} />
       <button
+        type="button"
         onClick={handleToggle}
-        className="absolute left-0 top-1/2 -translate-y-1/2 bg-dark-surface border border-dark-border rounded-r-lg p-2 hover:bg-dark-bg transition-colors"
+        className="fixed left-0 top-1/2 z-40 -translate-y-1/2 rounded-r-lg border border-white/[0.08] border-l-0 bg-dark-surface px-2 py-3 font-mono text-dark-muted shadow-desk transition-colors hover:bg-dark-elevated hover:text-dark-text"
+        aria-label={isOpen ? 'Collapse sidebar' : 'Expand sidebar'}
       >
         {isOpen ? '◀' : '▶'}
       </button>

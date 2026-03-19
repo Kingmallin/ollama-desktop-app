@@ -7,8 +7,43 @@ import DocumentsPanel from './components/DocumentsPanel';
 import { buildMessagesWithSystemPrompt } from './utils/prompts';
 import { API_ENDPOINTS, LIMITS, SESSION_STORAGE_KEYS } from './constants';
 import SystemPromptSettings from './components/SystemPromptSettings';
-import { getStoredSystemPromptPresetId, getStoredSystemPromptCustom, CUSTOM_PRESET_ID } from './components/SystemPromptSettings';
+import {
+  getStoredSystemPromptPresetId,
+  getStoredSystemPromptCustom,
+  CUSTOM_PRESET_ID,
+  getSystemPromptBarPreview,
+} from './components/SystemPromptSettings';
 import type { Message, Document, ConversationSummary } from './types';
+
+/**
+ * Image tool runs only if the *user* clearly asked for a generated image/picture/drawing.
+ * Stops false triggers when the model hallucinates [IMAGE: …] on generic prompts (“make something awesome”).
+ */
+function userRequestedImageGeneration(userText: string): boolean {
+  const t = userText.trim().toLowerCase();
+  if (!t) return false;
+  if (
+    /\b(draw|sketch|paint|illustrat|visuali[sz]e|dall-?e|midjourney|stable\s*diff(?:usion)?|sdxl|text-?to-?image|img2img)\b/.test(
+      t
+    )
+  ) {
+    return true;
+  }
+  if (
+    /\b(generate|create|make|give\s+me|show\s+me)\s+(an?\s+)?(image|picture|photo|illustration|artwork|wallpaper|banner|thumbnail)\b/.test(
+      t
+    )
+  ) {
+    return true;
+  }
+  if (/\b(image|picture|photo|illustration|artwork)\s+(of|showing|for|depicting)\b/.test(t)) {
+    return true;
+  }
+  if (/\b(emoji|icon)\s+(image|picture|asset)\b/.test(t) || /🎨/.test(userText)) {
+    return true;
+  }
+  return false;
+}
 
 function App() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -32,17 +67,18 @@ function App() {
   const handleSendMessage = async (content: string) => {
     if (!selectedModel || !content.trim()) return;
 
-    // All messages go to the AI; image generation is a tool the AI invokes by outputting a prompt (see extractImagePrompt after stream).
-    // Search documents for relevant context if we have documents assigned to this model
+    setLastUsedDocuments([]);
+
+    // RAG only when at least one library doc is assigned to the active model — skip all document API calls otherwise (faster TTFT).
+    const assignedDocs =
+      documents.length > 0
+        ? documents.filter((doc: Document) => doc.assignedModels?.includes(selectedModel))
+        : [];
+
+    // All messages go to the AI; image generation runs only if the model emits [IMAGE: …] (see extractImagePrompt after stream).
     let ragContext = '';
-    if (documents.length > 0 && selectedModel) {
+    if (assignedDocs.length > 0) {
       try {
-        // Filter documents assigned to the current model
-        const assignedDocs = documents.filter((doc: Document) => 
-          doc.assignedModels && doc.assignedModels.includes(selectedModel)
-        );
-        
-        if (assignedDocs.length > 0) {
           // Try to search first, but if no results, still include all assigned documents
           let docContents: string[] = [];
           
@@ -160,7 +196,6 @@ function App() {
             // Store which documents were used for this message
             setLastUsedDocuments(usedDocuments);
           }
-        }
       } catch (error) {
         console.error('Error searching documents:', error);
       }
@@ -174,8 +209,6 @@ function App() {
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    // Clear used documents when sending new message
-    setLastUsedDocuments([]);
     setIsGenerating(true);
 
     const controller = new AbortController();
@@ -237,43 +270,27 @@ function App() {
 
       setMessages((prev) => [...prev, assistantMessage]);
       
-      // Image generation is a tool: the AI decides when to generate and outputs a prompt (structured or natural language).
+      // Image generation is a tool call only: the model must emit [IMAGE: natural-language prompt].
+      // We do not infer intent from prose (“I’ll draw…”) — avoids false triggers during HTML/code replies.
       const extractImagePrompt = (text: string): string | null => {
         const textWithoutCode = text.replace(/```[\s\S]*?```/g, '').trim();
         if (!textWithoutCode) return null;
 
-        // Structured tool call: [IMAGE: reworded prompt]
-        const structuredMatch = textWithoutCode.match(/\[IMAGE:\s*([^\]]+)\]/i);
-        if (structuredMatch && structuredMatch[1].trim().length > 2) {
-          return structuredMatch[1].trim();
-        }
-
-        const looksLikeCode = (s: string): boolean => {
+        const looksLikeHtmlOrMarkup = (s: string): boolean => {
           const t = s.trim();
-          return (
-            /^\s*(def |class |import |from |print\s*\(|if __name__|#.*\n\s*\n)/m.test(t) ||
-            t.includes('```') ||
-            (t.split('\n').length > 3 && /^\s{2,}/m.test(t))
-          );
+          if (!t) return true;
+          if (/[<>]/.test(t)) return true;
+          if (/^\s*["']?\s*<!DOCTYPE\s/i.test(t) || /\b(html|body|head|div|span|img|src|href|class|style)\s*=/i.test(t)) return true;
+          if (/\b(\d+(px|rem|em)|#[0-9a-f]{3,8}\b|flexbox|grid-template|margin\s*:|padding\s*:)/i.test(t)) return true;
+          if (/\b(image|img)\s+(tag|tags|element|attribute|gallery|sprite|map)\b/i.test(t)) return true;
+          return false;
         };
 
-        // Require explicit first-person offer: only when the model says it will generate/create an image.
-        // This avoids false positives from code (e.g. "image = load_image()") or explanations ("the image of the data").
-        const explicitOfferPatterns = [
-          /(?:I'll|I will|Let me|I can)\s+(?:generate|create|make|draw)\s+(?:an?\s+)?(?:image|picture|photo)\s+(?:of|showing|with|featuring)?\s*[:—]?\s*(.+?)(?:\.|$|{)/i,
-          /(?:Generating|Creating|Drawing)\s+(?:an?\s+)?(?:image|picture|photo)\s+(?:of|showing|with|featuring)?\s*[:—]?\s*(.+?)(?:\.|$|{)/i,
-          /(?:Here'?s?|Here is)\s+(?:an?\s+)?(?:image|picture|photo)\s+(?:of|showing|with|featuring)\s+(.+?)(?:\.|$|{)/i,
-        ];
-
-        for (const pattern of explicitOfferPatterns) {
-          const match = textWithoutCode.match(pattern);
-          if (match && match[1]) {
-            let prompt = match[1].trim();
-            prompt = prompt.replace(/\s*(?:using|with|by|via).*$/i, '');
-            prompt = prompt.replace(/\s*\{.*$/, '');
-            if (prompt.length > 5 && !looksLikeCode(prompt)) {
-              return prompt;
-            }
+        const structuredMatch = textWithoutCode.match(/\[IMAGE:\s*([^\]]+)\]/i);
+        if (structuredMatch && structuredMatch[1].trim().length > 2) {
+          const raw = structuredMatch[1].trim();
+          if (!looksLikeHtmlOrMarkup(raw)) {
+            return raw;
           }
         }
 
@@ -281,7 +298,7 @@ function App() {
       };
 
       // Throttle UI updates during stream so we don't re-render on every tiny chunk (smoother + less CPU)
-      const STREAM_UPDATE_INTERVAL_MS = 50;
+      const STREAM_UPDATE_INTERVAL_MS = 32;
       let lastUpdateTime = 0;
 
       const flushStreamUpdate = (content: string, isFinal: boolean) => {
@@ -340,11 +357,20 @@ function App() {
           }
         }
         
-        // After stream is complete, check if assistant response mentions image generation
+        // After stream: image tool only if model emitted [IMAGE:] *and* user asked for a visual.
         const finalContent = assistantContent.trim();
         if (finalContent) {
           const imagePrompt = extractImagePrompt(finalContent);
-          if (imagePrompt) {
+          const imageAllowed = Boolean(imagePrompt && userRequestedImageGeneration(content));
+
+          if (imagePrompt && !imageAllowed) {
+            const cleaned = finalContent.replace(/\s*\[IMAGE:\s*[^\]]+\]\s*/gi, ' ').replace(/\s{2,}/g, ' ').trim();
+            setMessages((prev) =>
+              prev.map((msg) => (msg.id === assistantMessageId ? { ...msg, content: cleaned } : msg))
+            );
+          }
+
+          if (imageAllowed && imagePrompt) {
             setIsGeneratingImage(true);
             // Update the assistant message with the final content first (if not already updated)
             setMessages((prev) =>
@@ -663,7 +689,7 @@ function App() {
             setShowDocumentsPanel(true);
             break;
           case 'show-about':
-            alert('Ollama Desktop App\nVersion 1.0.0\n\nA modern desktop application for interacting with locally running Ollama LLM instances.');
+            alert('DeskLlama\nVersion 1.0.0\n\nLocal chat, documents, code, and image generation with Ollama.');
             break;
           case 'model-deleted':
             handleModelDeleted();
@@ -706,8 +732,8 @@ function App() {
   };
 
   return (
-    <div 
-      className="flex h-screen bg-dark-bg text-dark-text flex-col"
+    <div
+      className="flex h-screen flex-col bg-dark-bg font-syne text-dark-text"
       onDragOver={handleRootDragOver}
       onDrop={handleRootDrop}
     >
@@ -715,7 +741,6 @@ function App() {
         <Sidebar
           selectedModel={selectedModel}
           onModelChange={setSelectedModel}
-          onClearConversation={handleClearConversation}
           onNewConversation={handleNewConversation}
           onSelectConversation={handleSelectConversation}
           onDeleteConversation={handleDeleteConversation}
@@ -727,6 +752,7 @@ function App() {
           onManageDocuments={() => setShowDocumentsPanel(true)}
           onOpenImageSettings={() => {}}
           onOpenSystemPrompt={() => setShowSystemPromptSettings(true)}
+          onBrowseModels={() => setShowModelInstallDialog(true)}
           onDocumentsChange={async () => {
             // Refresh documents when assignments change
             try {
@@ -756,6 +782,15 @@ function App() {
             onStopGeneration={handleStopGeneration}
             selectedModel={selectedModel}
             usedDocuments={lastUsedDocuments}
+            onClearConversation={handleClearConversation}
+            onNewConversation={handleNewConversation}
+            onOpenSystemPrompt={() => setShowSystemPromptSettings(true)}
+            systemPromptPreview={getSystemPromptBarPreview()}
+            assignedDocumentsCount={
+              selectedModel
+                ? documents.filter((d) => d.assignedModels?.includes(selectedModel)).length
+                : 0
+            }
           />
         </div>
       </div>

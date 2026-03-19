@@ -7,6 +7,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const os = require('os');
 const { URL } = require('url');
+const { getWritableRoot } = require('../paths');
 
 // Hugging Face hub cache: ~/.cache/huggingface/hub or HF_HUB_CACHE
 function getHfCacheDir() {
@@ -60,11 +61,18 @@ async function uninstallImageModel(modelId) {
   }
 }
 
-// Image generation settings storage
-const SETTINGS_FILE = path.join(__dirname, '../../image-settings.json');
-const VENV_DIR = path.join(__dirname, '../../venv-image-gen');
-const VENV_PYTHON = path.join(VENV_DIR, 'bin', 'python3');
-const VENV_PIP = path.join(VENV_DIR, 'bin', 'pip');
+// Image generation settings storage (under userData when packaged)
+const WRITABLE_ROOT = getWritableRoot();
+const SETTINGS_FILE = path.join(WRITABLE_ROOT, 'image-settings.json');
+const VENV_DIR = path.join(WRITABLE_ROOT, 'venv-image-gen');
+const VENV_PYTHON =
+  process.platform === 'win32'
+    ? path.join(VENV_DIR, 'Scripts', 'python.exe')
+    : path.join(VENV_DIR, 'bin', 'python3');
+const VENV_PIP =
+  process.platform === 'win32'
+    ? path.join(VENV_DIR, 'Scripts', 'pip.exe')
+    : path.join(VENV_DIR, 'bin', 'pip');
 
 const { getOllamaHost } = require('../ollamaHost');
 const OLLAMA_HOST = getOllamaHost();
@@ -480,7 +488,7 @@ async function generateImageLocal(prompt, modelName = null) {
   // Create a Python script to generate the image
   // __dirname is backend/routes, so ../scripts is backend/scripts
   const scriptPath = path.join(__dirname, '../scripts/generate_image.py');
-  const outputDir = path.join(__dirname, '../../generated-images');
+  const outputDir = path.join(WRITABLE_ROOT, 'generated-images');
   
   // Ensure output directory exists
   await fs.mkdir(outputDir, { recursive: true });
@@ -589,7 +597,7 @@ async function generateImageHuggingFace(prompt, modelName = null) {
       res.on('end', () => {
         if (res.statusCode === 200) {
           // Save image to file
-          const outputDir = path.join(__dirname, '../../generated-images');
+          const outputDir = path.join(WRITABLE_ROOT, 'generated-images');
           const imagePath = path.join(outputDir, `generated-${Date.now()}.png`);
           
           fs.mkdir(outputDir, { recursive: true })

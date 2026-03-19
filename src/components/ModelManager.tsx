@@ -288,15 +288,15 @@ export default function ModelManager({ selectedModel, onModelSelect, onModelsLoa
 
 
   return (
-    <div className="bg-dark-surface border-b border-dark-border p-4">
+    <div className="border-b border-white/[0.06] bg-dark-surface px-5 py-2.5">
       {connectionIssue && (
         <div
-          className="mb-4 rounded-lg border border-amber-600/50 bg-amber-950/40 px-4 py-3 text-sm text-amber-100"
+          className="mb-3 rounded-lg border border-desk-orange/35 bg-desk-orange/10 px-4 py-3 text-sm text-desk-yellow"
           role="alert"
         >
-          <div className="font-medium text-amber-50">{connectionIssue.title}</div>
-          <p className="mt-1 text-amber-100/90">{connectionIssue.message}</p>
-          {connectionIssue.hint && <p className="mt-2 text-amber-200/80">{connectionIssue.hint}</p>}
+          <div className="font-semibold text-dark-text">{connectionIssue.title}</div>
+          <p className="mt-1 text-dark-muted">{connectionIssue.message}</p>
+          {connectionIssue.hint && <p className="mt-2 font-mono text-2xs opacity-90">{connectionIssue.hint}</p>}
           <div className="mt-3 flex flex-wrap gap-2">
             {(connectionIssue.code === 'OLLAMA_UNREACHABLE' ||
               connectionIssue.title.includes('Ollama')) && (
@@ -304,94 +304,95 @@ export default function ModelManager({ selectedModel, onModelSelect, onModelsLoa
                 <button
                   type="button"
                   onClick={openOllamaDownload}
-                  className="rounded-lg bg-amber-600 px-3 py-1.5 font-medium text-amber-950 hover:bg-amber-500"
+                  className="rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-black hover:opacity-90"
                 >
                   Download Ollama
                 </button>
                 <button
                   type="button"
                   onClick={openPythonDownload}
-                  className="rounded-lg border border-amber-500/60 px-3 py-1.5 text-amber-50 hover:bg-amber-900/50"
+                  className="rounded-md border border-white/[0.12] px-3 py-1.5 text-xs text-dark-text hover:bg-dark-elevated"
                 >
-                  Python (for local image generation)
+                  Python (images)
                 </button>
               </>
             )}
             <button
               type="button"
               onClick={() => fetchModels()}
-              className="rounded-lg border border-amber-500/60 px-3 py-1.5 text-amber-50 hover:bg-amber-900/50"
+              className="rounded-md border border-white/[0.12] px-3 py-1.5 text-xs text-dark-muted hover:bg-dark-elevated hover:text-dark-text"
             >
               Refresh
             </button>
           </div>
         </div>
       )}
-      <div className="flex items-center gap-4">
-        <div className="flex-1">
-          <label className="block text-sm font-medium mb-2">Select Model</label>
-          <select
-            value={selectedModel}
-            onChange={(e) => {
-              const v = e.target.value;
-              onModelSelect(v);
-            }}
-            className="w-full min-w-[12rem] bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-dark-text focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={loading || !!connectionIssue}
-            aria-label="Select Ollama model"
-          >
-            {loading ? (
-              <option>Loading models...</option>
-            ) : connectionIssue ? (
-              <option>Connect Ollama to list models</option>
-            ) : models.length === 0 ? (
-              <option>No models installed</option>
-            ) : (
-              <>
-                <option value="">Select a model</option>
-                {models.map((model) => (
-                  <option key={model.name} value={model.name}>
-                    {model.name}
-                  </option>
-                ))}
-              </>
-            )}
-          </select>
-        </div>
-        <div className="flex-1">
-          <label className="block text-sm font-medium mb-2">Install New Model</label>
-          <button
-            onClick={() => {
-              if (controlledShowDialog === undefined) {
-                setInternalShowDialog(true);
-              } else if (onInstallDialogOpen) {
-                onInstallDialogOpen();
-              }
-            }}
-            disabled={installing || !!connectionIssue}
-            className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
-          >
-            {installing ? 'Installing...' : 'Browse & Install Model'}
-          </button>
-        </div>
+      {/* Compact toolbar — mirrors example.html model strip */}
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          value={selectedModel}
+          onChange={(e) => {
+            const v = e.target.value;
+            onModelSelect(v);
+          }}
+          className="min-w-[10rem] flex-1 cursor-pointer rounded-md border border-white/[0.08] bg-dark-elevated px-2.5 py-[5px] font-syne text-[11.5px] text-dark-text focus:border-accent focus:outline-none disabled:opacity-50"
+          disabled={loading || !!connectionIssue}
+          aria-label="Select Ollama model"
+        >
+          {loading ? (
+            <option>Loading models…</option>
+          ) : connectionIssue ? (
+            <option>Connect Ollama to list models</option>
+          ) : models.length === 0 ? (
+            <option>No models installed</option>
+          ) : (
+            <>
+              <option value="">Select a model</option>
+              {models.map((model) => (
+                <option key={model.name} value={model.name}>
+                  {model.name}
+                </option>
+              ))}
+            </>
+          )}
+        </select>
+        <button
+          onClick={() => {
+            if (controlledShowDialog === undefined) {
+              setInternalShowDialog(true);
+            } else if (onInstallDialogOpen) {
+              onInstallDialogOpen();
+            }
+          }}
+          disabled={installing || !!connectionIssue}
+          className="shrink-0 rounded-md bg-gradient-to-br from-accent to-desk-blue px-3.5 py-2 text-center text-xs font-bold text-black transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+          type="button"
+        >
+          {installing ? 'Installing…' : 'Browse & install'}
+        </button>
         <button
           onClick={fetchModels}
-          className="px-4 py-2 bg-dark-bg hover:bg-dark-border border border-dark-border rounded-lg transition-colors"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-white/[0.1] bg-dark-raised text-dark-muted transition-colors hover:border-white/[0.14] hover:bg-dark-shelf hover:text-dark-text"
           title="Refresh models"
+          type="button"
+          aria-label="Refresh models"
         >
-          🔄
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M23 4v6h-6M1 20v-6h6" />
+            <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" />
+          </svg>
         </button>
       </div>
 
       {installing && (
-        <div className="mt-4">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-sm text-dark-muted">{installStatus || `Installing ${installingModelName}...`}</span>
-            <span className="text-sm text-dark-muted font-semibold">{installProgress}%</span>
+        <div className="mt-3">
+          <div className="mb-1 flex items-center justify-between font-mono text-2xs text-dark-muted">
+            <span>{installStatus || `Installing ${installingModelName}…`}</span>
+            <span className="text-accent">{installProgress}%</span>
           </div>
-          <div className="w-full bg-dark-bg rounded-full h-2.5">
+          <div className="h-1 w-full overflow-hidden rounded-full bg-dark-raised">
             <div
-              className="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-out"
+              className="h-full rounded-full bg-gradient-to-r from-accent to-desk-blue transition-all duration-300"
               style={{ width: `${installProgress}%` }}
             />
           </div>

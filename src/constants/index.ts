@@ -1,7 +1,7 @@
 /**
  * Application Constants
  * 
- * Centralized configuration values for the Ollama Desktop App.
+ * Centralized configuration values for DeskLlama.
  * Update these values to change API endpoints, limits, and timeouts.
  */
 

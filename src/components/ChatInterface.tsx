@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 import CodeBlock from './CodeBlock';
+import BrandWordmark from './BrandWordmark';
 
 interface Message {
   id: string;
@@ -10,8 +11,8 @@ interface Message {
   content: string;
   codeBlocks?: string[];
   timestamp: Date;
-  imageData?: string; // Base64 image data URL
-  imageMethod?: string; // 'local' or 'huggingface-api'
+  imageData?: string;
+  imageMethod?: string;
 }
 
 interface ChatInterfaceProps {
@@ -22,6 +23,44 @@ interface ChatInterfaceProps {
   onStopGeneration: () => void;
   selectedModel: string;
   usedDocuments?: string[];
+  onClearConversation?: () => void;
+  onNewConversation?: () => void;
+  onOpenSystemPrompt?: () => void;
+  systemPromptPreview?: string;
+  /** Documents assigned to the active model (RAG capacity), not necessarily used in last reply */
+  assignedDocumentsCount?: number;
+}
+
+function IconChatBubble(props: { className?: string }) {
+  return (
+    <svg className={props.className} viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+      <path d="M2 2h12a1 1 0 011 1v8a1 1 0 01-1 1H9l-3 2.5V12H2a1 1 0 01-1-1V3a1 1 0 011-1z" />
+    </svg>
+  );
+}
+
+function IconSend(props: { className?: string }) {
+  return (
+    <svg className={props.className} viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+      <path d="M1 8L15 1 8 15l-2-5z" />
+    </svg>
+  );
+}
+
+function IconPlus(props: { className?: string }) {
+  return (
+    <svg className={props.className} viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+      <path d="M8 1v14M1 8h14" />
+    </svg>
+  );
+}
+
+function IconClose(props: { className?: string }) {
+  return (
+    <svg className={props.className} viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+      <path d="M3 3l10 10M13 3L3 13" />
+    </svg>
+  );
 }
 
 export default function ChatInterface({
@@ -32,6 +71,11 @@ export default function ChatInterface({
   onStopGeneration,
   selectedModel,
   usedDocuments = [],
+  onClearConversation,
+  onNewConversation,
+  onOpenSystemPrompt,
+  systemPromptPreview = '',
+  assignedDocumentsCount = 0,
 }: ChatInterfaceProps) {
   const [input, setInput] = useState('');
   const [generatingMessageIndex, setGeneratingMessageIndex] = useState(0);
@@ -48,13 +92,10 @@ export default function ChatInterface({
       return;
     }
     const chatMessages = [
-      'Generating... This may take a moment depending on your system specs.',
-      'Still loading... We\'re working on it.',
+      'Generating… This may take a moment depending on your system.',
+      'Still working — hang tight.',
     ];
-    const imageMessages = [
-      'Generating image...',
-      'Creating image... This may take a moment.',
-    ];
+    const imageMessages = ['Generating image…', 'Creating image…'];
     const list = isGeneratingImage ? imageMessages : chatMessages;
     const interval = setInterval(() => {
       setGeneratingMessageIndex((i) => (i + 1) % list.length);
@@ -63,10 +104,10 @@ export default function ChatInterface({
   }, [isGenerating, isGeneratingImage]);
 
   const generatingMessages = isGeneratingImage
-    ? ['Generating image...', 'Creating image... This may take a moment.']
+    ? ['Generating image…', 'Creating image…']
     : [
-        'Generating... This may take a moment depending on your system specs.',
-        'Still loading... We\'re working on it.',
+        'Generating… This may take a moment depending on your system.',
+        'Still working — hang tight.',
       ];
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -93,23 +134,18 @@ export default function ChatInterface({
     e.target.style.height = `${e.target.scrollHeight}px`;
   };
 
-  // Hide [IMAGE: ...] from display — the prompt is sent to the image generator only; user sees the rest.
   const displayContent = (content: string, isAssistant: boolean) =>
     isAssistant
       ? content.replace(/\[IMAGE:[^\]]*\]/gi, '').replace(/\n{3,}/g, '\n\n').trim()
       : content;
 
-  // Split content into markdown and code blocks
   const splitContent = (content: string) => {
-    // Improved regex to match code blocks with optional language
-    // Matches: ```lang\ncode\n``` or ```\ncode\n```
     const codeBlockRegex = /```(\w+)?\n?([\s\S]*?)```/g;
     const parts: Array<{ type: 'markdown' | 'code'; content: string; language?: string }> = [];
     let lastIndex = 0;
     let match;
     const matches: Array<{ index: number; length: number; language: string; code: string }> = [];
 
-    // Collect all matches first
     while ((match = codeBlockRegex.exec(content)) !== null) {
       matches.push({
         index: match.index,
@@ -119,132 +155,165 @@ export default function ChatInterface({
       });
     }
 
-    // Process matches
     for (const codeMatch of matches) {
       if (codeMatch.index > lastIndex) {
         const markdownContent = content.slice(lastIndex, codeMatch.index).trim();
         if (markdownContent) {
-          parts.push({
-            type: 'markdown',
-            content: markdownContent,
-          });
+          parts.push({ type: 'markdown', content: markdownContent });
         }
       }
-      parts.push({
-        type: 'code',
-        content: codeMatch.code,
-        language: codeMatch.language,
-      });
+      parts.push({ type: 'code', content: codeMatch.code, language: codeMatch.language });
       lastIndex = codeMatch.index + codeMatch.length;
     }
 
-    // Add remaining content
     if (lastIndex < content.length) {
       const remainingContent = content.slice(lastIndex).trim();
       if (remainingContent) {
-        parts.push({
-          type: 'markdown',
-          content: remainingContent,
-        });
+        parts.push({ type: 'markdown', content: remainingContent });
       }
     }
 
-    return parts.length > 0 ? parts : [{ type: 'markdown', content }];
+    return parts.length > 0 ? parts : [{ type: 'markdown' as const, content }];
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-0">
-      <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-6">
+    <div className="flex min-h-0 flex-1 flex-col bg-dark-bg">
+      <header className="flex h-[52px] shrink-0 items-center justify-between border-b border-white/[0.06] bg-dark-surface px-5">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-md bg-accent-dim">
+            <IconChatBubble className="h-[13px] w-[13px] text-accent" />
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-sm font-bold text-dark-text">Chat</h1>
+            <p className="font-mono text-2xs text-dark-dim">local · no data leaves your machine</p>
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {assignedDocumentsCount > 0 && (
+            <div className="hidden items-center gap-1.5 rounded-md border border-desk-purple/20 bg-desk-purple/10 px-2 py-1 font-mono text-[11px] text-desk-purple sm:flex">
+              <span className="h-1.5 w-1.5 rounded-full bg-desk-purple" />
+              RAG · {assignedDocumentsCount} docs
+            </div>
+          )}
+          {onClearConversation && (
+            <button
+              type="button"
+              onClick={onClearConversation}
+              className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.1] bg-transparent px-2.5 py-1 font-syne text-[11px] font-semibold text-dark-muted transition-colors hover:bg-dark-raised hover:text-dark-text"
+            >
+              <IconClose className="h-2.5 w-2.5" />
+              Clear
+            </button>
+          )}
+          {onNewConversation && (
+            <button
+              type="button"
+              onClick={onNewConversation}
+              className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.1] bg-dark-raised px-2.5 py-1 font-syne text-[11px] font-semibold text-dark-text transition-colors hover:border-white/[0.14] hover:bg-dark-shelf"
+            >
+              <IconPlus className="h-2.5 w-2.5" />
+              New chat
+            </button>
+          )}
+        </div>
+      </header>
+
+      <div className="chat-scroll flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-5 py-[18px]">
         {messages.length === 0 && (
-          <div className="text-center text-dark-muted mt-20">
-            <h2 className="text-2xl font-semibold mb-2">Welcome to Ollama Desktop</h2>
-            <p>Select a model and start chatting!</p>
+          <div className="mt-16 text-center">
+            <h2 className="flex flex-wrap items-center justify-center gap-2 text-xl text-dark-muted">
+              <span>Welcome to</span>
+              <BrandWordmark className="!text-xl" />
+            </h2>
+            <p className="mt-2 text-sm text-dark-muted">Pick a model, type below, and go.</p>
           </div>
         )}
         {messages.map((message) => (
           <div
             key={message.id}
-            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            className={`animate-fade-up flex max-w-[80%] gap-2.5 ${
+              message.role === 'user' ? 'ml-auto flex-row-reverse self-end' : 'self-start'
+            }`}
           >
             <div
-              className={`max-w-3xl rounded-lg p-4 ${
+              className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full font-mono text-[10px] font-bold ${
                 message.role === 'user'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-dark-surface border border-dark-border'
+                  ? 'bg-gradient-to-br from-desk-blue to-desk-purple text-white'
+                  : 'bg-gradient-to-br from-accent to-desk-blue text-black'
+              }`}
+            >
+              {message.role === 'user' ? 'U' : 'DL'}
+            </div>
+            <div
+              className={`border px-3.5 py-2.5 text-[13px] leading-[1.6] text-dark-text ${
+                message.role === 'user'
+                  ? 'rounded-[12px_4px_12px_12px] border-white/[0.06] bg-dark-raised'
+                  : 'rounded-[4px_12px_12px_12px] border-white/[0.06] bg-dark-elevated'
               }`}
             >
               {message.role === 'assistant' ? (
                 <div className="space-y-4">
-                  {/* Display generated image if present */}
                   {message.imageData && (
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="text-xs text-dark-muted">
-                          🎨 Generated image {message.imageMethod && `(${message.imageMethod})`}
+                    <div className="mb-3">
+                      <div className="mb-2 flex items-center justify-between">
+                        <div className="font-mono text-2xs text-dark-muted">
+                          Image {message.imageMethod && `· ${message.imageMethod}`}
                         </div>
                         <a
                           href={message.imageData}
                           download={`generated-image-${message.id}.png`}
-                          className="text-xs text-blue-400 hover:text-blue-300"
+                          className="font-mono text-2xs text-desk-blue hover:text-accent"
                         >
-                          💾 Download
+                          Download
                         </a>
                       </div>
-                      <div className="relative group">
-                        <img 
-                          src={message.imageData} 
-                          alt="Generated image"
-                          className="max-w-full h-auto rounded-lg border border-dark-border cursor-pointer hover:opacity-90 transition-opacity"
-                          style={{ maxHeight: '512px' }}
-                          onClick={() => {
-                            // Open image in new tab for full view
-                            const newWindow = window.open();
-                            if (newWindow) {
-                              newWindow.document.write(`<img src="${message.imageData}" style="max-width: 100%; height: auto;" />`);
-                            }
-                          }}
-                        />
-                      </div>
+                      <img
+                        src={message.imageData}
+                        alt="Generated"
+                        className="max-h-[min(512px,50vh)] w-full cursor-pointer rounded-lg border border-white/[0.08] object-contain transition-opacity hover:opacity-90"
+                        onClick={() => {
+                          const w = window.open();
+                          if (w) {
+                            w.document.write(`<img src="${message.imageData}" style="max-width:100%" />`);
+                          }
+                        }}
+                      />
                     </div>
                   )}
                   {splitContent(displayContent(message.content, true)).map((part, idx) => {
                     if (part.type === 'code') {
-                      return (
-                        <CodeBlock
-                          key={idx}
-                          code={part.content}
-                          language={part.language || 'text'}
-                        />
-                      );
-                    } else {
-                      return (
-                        <div key={idx} className="prose prose-invert max-w-none">
-                          <ReactMarkdown
-                            components={{
-                              code({ node, inline, className, children, ...props }) {
-                                const match = /language-(\w+)/.exec(className || '');
-                                return !inline && match ? (
-                                  <SyntaxHighlighter
-                                    style={vscDarkPlus}
-                                    language={match[1]}
-                                    PreTag="div"
-                                    {...props}
-                                  >
-                                    {String(children).replace(/\n$/, '')}
-                                  </SyntaxHighlighter>
-                                ) : (
-                                  <code className={className} {...props}>
-                                    {children}
-                                  </code>
-                                );
-                              },
-                            }}
-                          >
-                            {part.content}
-                          </ReactMarkdown>
-                        </div>
-                      );
+                      return <CodeBlock key={idx} code={part.content} language={part.language || 'text'} />;
                     }
+                    return (
+                      <div
+                        key={idx}
+                        className="prose prose-invert max-w-none prose-p:my-2 prose-headings:my-3 prose-headings:text-dark-text prose-p:text-dark-text prose-li:text-dark-text prose-strong:text-dark-text [&_code]:rounded [&_code]:bg-dark-bg [&_code]:px-1.5 [&_code]:py-px [&_code]:font-mono [&_code]:text-[11px] [&_code]:text-accent"
+                      >
+                        <ReactMarkdown
+                          components={{
+                            code({ inline, className, children, ...props }) {
+                              const match = /language-(\w+)/.exec(className || '');
+                              return !inline && match ? (
+                                <SyntaxHighlighter
+                                  style={vscDarkPlus}
+                                  language={match[1]}
+                                  PreTag="div"
+                                  {...props}
+                                >
+                                  {String(children).replace(/\n$/, '')}
+                                </SyntaxHighlighter>
+                              ) : (
+                                <code className={className} {...props}>
+                                  {children}
+                                </code>
+                              );
+                            },
+                          }}
+                        >
+                          {part.content}
+                        </ReactMarkdown>
+                      </div>
+                    );
                   })}
                 </div>
               ) : (
@@ -254,20 +323,19 @@ export default function ChatInterface({
           </div>
         ))}
         {isGenerating && (
-          <div className="flex justify-start">
-            <div className="bg-dark-surface border border-dark-border rounded-lg p-4 max-w-md">
+          <div className="animate-fade-up flex max-w-md gap-2.5 self-start">
+            <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent to-desk-blue font-mono text-[10px] font-bold text-black">
+              DL
+            </div>
+            <div className="rounded-[4px_12px_12px_12px] border border-white/[0.08] bg-dark-elevated px-4 py-3">
               <div className="flex items-center gap-3">
                 <div
-                  className="flex-shrink-0 w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin"
+                  className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-accent/30 border-t-accent"
                   aria-hidden
                 />
                 <div>
-                  <p className="text-dark-text font-medium">
-                    {generatingMessages[generatingMessageIndex]}
-                  </p>
-                  <p className="text-xs text-dark-muted mt-0.5">
-                    If something goes wrong, you&apos;ll see an error message below.
-                  </p>
+                  <p className="text-sm font-medium text-dark-text">{generatingMessages[generatingMessageIndex]}</p>
+                  <p className="mt-0.5 font-mono text-2xs text-dark-muted">Errors appear in the bubble if something fails</p>
                 </div>
               </div>
             </div>
@@ -275,43 +343,60 @@ export default function ChatInterface({
         )}
         <div ref={messagesEndRef} />
       </div>
-      
-      {/* Show which documents were used in the last response */}
+
       {usedDocuments.length > 0 && !isGenerating && (
-        <div className="flex-shrink-0 border-t border-dark-border px-4 py-2 bg-blue-600/10">
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-blue-400 font-semibold">📄 Using documents:</span>
-            <div className="flex flex-wrap gap-1">
-              {usedDocuments.map((docName, idx) => (
-                <span
-                  key={idx}
-                  className="px-2 py-1 bg-blue-600/20 text-blue-300 rounded"
-                >
-                  {docName}
-                </span>
-              ))}
-            </div>
+        <div className="shrink-0 border-t border-white/[0.06] bg-desk-purple/5 px-5 py-2">
+          <div className="flex flex-wrap items-center gap-2 font-mono text-[10.5px] text-desk-purple">
+            <span className="font-bold">RAG</span>
+            {usedDocuments.map((docName, idx) => (
+              <span key={idx} className="rounded border border-desk-purple/25 bg-desk-purple/10 px-2 py-0.5">
+                {docName}
+              </span>
+            ))}
           </div>
         </div>
       )}
 
-      <div className="flex-shrink-0 border-t border-dark-border p-4">
-        <form onSubmit={handleSubmit} className="flex gap-2">
+      <footer className="shrink-0 border-t border-white/[0.06] bg-dark-surface px-5 pb-4 pt-3">
+        {assignedDocumentsCount > 0 && (
+          <div className="mb-2 flex items-center gap-1.5 rounded-md border border-desk-purple/20 bg-desk-purple/10 px-2 py-[3px] font-mono text-[11px] text-desk-purple sm:hidden">
+            <span className="h-1.5 w-1.5 rounded-full bg-desk-purple" />
+            RAG · {assignedDocumentsCount} docs
+          </div>
+        )}
+        {onOpenSystemPrompt && (
+          <button
+            type="button"
+            onClick={onOpenSystemPrompt}
+            className="mb-2.5 flex w-full cursor-pointer items-center gap-2 rounded-lg border border-white/[0.06] bg-dark-elevated py-1.5 pl-2.5 pr-2 text-left transition-colors hover:border-white/[0.1]"
+          >
+            <span className="shrink-0 font-mono text-[10px] font-bold text-accent">SYSTEM</span>
+            <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-dark-dim">
+              {systemPromptPreview || 'Configure how the assistant behaves…'}
+            </span>
+            <span className="shrink-0 font-mono text-[10px] text-dark-dim">edit ↗</span>
+          </button>
+        )}
+        <form onSubmit={handleSubmit} className="flex items-end gap-2">
           <textarea
             ref={inputRef}
             value={input}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            placeholder={selectedModel ? "Type your message..." : "Select a model first..."}
+            placeholder={
+              selectedModel
+                ? `Message ${selectedModel}… (Shift+Enter for newline)`
+                : 'Select a model first…'
+            }
             disabled={isGenerating || !selectedModel}
-            className="flex-1 bg-dark-bg border border-dark-border rounded-lg px-4 py-3 text-dark-text focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none max-h-32"
             rows={1}
+            className="min-h-[42px] max-h-[110px] flex-1 resize-none rounded-[9px] border border-white/[0.08] bg-dark-elevated px-[13px] py-2.5 font-syne text-[13px] text-dark-text placeholder:text-dark-dim focus:border-accent focus:outline-none disabled:opacity-50"
           />
           {isGenerating ? (
             <button
               type="button"
               onClick={onStopGeneration}
-              className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+              className="flex h-[42px] shrink-0 items-center justify-center rounded-[9px] border border-desk-red/40 bg-desk-red/10 px-4 text-xs font-bold text-desk-red transition-colors hover:bg-desk-red/20"
             >
               Stop
             </button>
@@ -319,13 +404,14 @@ export default function ChatInterface({
             <button
               type="submit"
               disabled={!input.trim() || !selectedModel}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+              className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-[9px] bg-accent text-black transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-35"
+              aria-label="Send"
             >
-              Send
+              <IconSend className="h-4 w-4" />
             </button>
           )}
         </form>
-      </div>
+      </footer>
     </div>
   );
 }

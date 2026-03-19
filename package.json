@@ -1,7 +1,7 @@
 {
   "name": "ollama-desktop-app",
   "version": "1.0.0",
-  "description": "Desktop app to simplify Ollama and local image generation. AI-assisted build; chat, documents, code execution, and image gen in one place.",
+  "description": "DeskLlama — desktop app for Ollama: chat, documents, code execution, and local image generation.",
   "main": "electron/main.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:react\" \"wait-on http://localhost:5173 && electron .\"",
@@ -43,7 +43,7 @@
   },
   "build": {
     "appId": "com.ollama.desktop",
-    "productName": "Ollama Desktop App",
+    "productName": "DeskLlama",
     "publish": null,
     "directories": {
       "output": "release"
@@ -68,7 +68,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Ollama Desktop App"
+      "shortcutName": "DeskLlama"
     }
   }
 }

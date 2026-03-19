@@ -6,6 +6,7 @@ const { URL } = require('url');
 const { getOllamaHost } = require('../ollamaHost');
 
 const OLLAMA_HOST = getOllamaHost();
+const OLLAMA_DEBUG = process.env.OLLAMA_DEBUG === '1' || process.env.OLLAMA_DEBUG === 'true';
 
 // Helper to make HTTP GET request
 function httpGet(url) {
@@ -48,13 +49,15 @@ function httpPostStream(url, body, onChunk) {
       },
     };
     
-    console.log('Request options:', options);
+    if (OLLAMA_DEBUG) console.log('Request options:', options);
     
     let isDone = false;
     
     const req = http.request(options, (res) => {
-      console.log('Ollama response status:', res.statusCode);
-      console.log('Ollama response headers:', res.headers);
+      if (OLLAMA_DEBUG) {
+        console.log('Ollama response status:', res.statusCode);
+        console.log('Ollama response headers:', res.headers);
+      }
       
       if (res.statusCode !== 200) {
         let errorData = '';
@@ -90,8 +93,9 @@ function httpPostStream(url, body, onChunk) {
               return;
             }
           } catch (e) {
-            // Skip invalid JSON
-            console.log('Parse error for line:', trimmedLine.substring(0, 100), e.message);
+            if (OLLAMA_DEBUG) {
+              console.log('Parse error for line:', trimmedLine.substring(0, 100), e.message);
+            }
           }
         }
       });
@@ -118,7 +122,7 @@ function httpPostStream(url, body, onChunk) {
     req.write(postData);
     req.end();
     
-    console.log('Request sent to Ollama');
+    if (OLLAMA_DEBUG) console.log('Request sent to Ollama');
   });
 }
 
@@ -755,7 +759,13 @@ router.post('/install', async (req, res) => {
 router.post('/chat/stream', async (req, res) => {
   const { model, messages } = req.body;
 
-  console.log('Chat stream request received:', { model, messageCount: messages?.length });
+  if (OLLAMA_DEBUG) {
+    console.log('Chat stream request received:', {
+      model,
+      messageCount: messages?.length,
+      lastMsgLen: messages?.length ? messages[messages.length - 1]?.content?.length : 0,
+    });
+  }
 
   if (!model || !messages) {
     return res.status(400).json({ error: 'Model and messages are required' });
@@ -772,8 +782,9 @@ router.post('/chat/stream', async (req, res) => {
     let streamEnded = false;
     let chunkCount = 0;
 
-    console.log('Connecting to Ollama at:', `${OLLAMA_HOST}/api/chat`);
-    console.log('Request body:', JSON.stringify({ model, messages: messages.map(m => ({ role: m.role, content: m.content.substring(0, 50) + '...' })) }));
+    if (OLLAMA_DEBUG) {
+      console.log('Connecting to Ollama at:', `${OLLAMA_HOST}/api/chat`);
+    }
 
     try {
       await httpPostStream(
@@ -808,7 +819,7 @@ router.post('/chat/stream', async (req, res) => {
 
       // If stream completed without explicit done flag
       if (!streamEnded) {
-        console.log('Stream ended without done flag, total chunks:', chunkCount);
+        if (OLLAMA_DEBUG) console.log('Stream ended without done flag, total chunks:', chunkCount);
         if (chunkCount === 0) {
           console.warn('WARNING: No content chunks received from Ollama!');
         }

@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs').promises;
 const path = require('path');
+const { getWritableRoot } = require('../paths');
 
-const CONVERSATIONS_DIR = path.join(__dirname, '../../conversations');
+const CONVERSATIONS_DIR = path.join(getWritableRoot(), 'conversations');
 const INDEX_FILE = path.join(CONVERSATIONS_DIR, 'index.json');
 
 async function ensureDir() {

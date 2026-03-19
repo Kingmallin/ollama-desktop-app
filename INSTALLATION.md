@@ -1,6 +1,6 @@
 # Installation & Setup Guide
 
-This guide will walk you through installing and setting up the Ollama Desktop App on your system.
+This guide will walk you through installing and setting up **DeskLlama** on your system.
 
 ## Table of Contents
 
@@ -37,7 +37,7 @@ This guide will walk you through installing and setting up the Ollama Desktop Ap
 
 ## Prerequisites
 
-Before installing the Ollama Desktop App, you need to install the following:
+Before installing DeskLlama, you need to install the following:
 
 ### 1. Node.js and npm
 
@@ -232,8 +232,10 @@ sudo apt install git
 2. **Run the `.exe` installer** and follow the setup wizard  
    - If **Microsoft Defender SmartScreen** says the app is unrecognized, click **More info**, then **Run anyway**. That prompt appears on **unsigned** builds; a **code-signed** release will show your publisher name instead.
    - The installer does **not** include **Ollama** or **Python**. Install Ollama separately if prompted in the app; use Python only if you want local image generation features.
-3. **Launch** "Ollama Desktop App" from the Start menu or desktop shortcut
+3. **Launch** **DeskLlama** from the Start menu or desktop shortcut
 4. **Install and start [Ollama](https://ollama.com/download)** (separate download). Leave the Ollama app running (Windows system tray). The desktop app connects to `127.0.0.1:11434`.
+
+**Where your data is saved (installed app):** conversations, uploaded documents, and image settings are stored under your OS **app user data** folder (e.g. Windows: `%APPDATA%\ollama-desktop-app\`), not next to the `.exe` — so updates don’t overwrite chats.
 
 #### Option B: Developer Install (from source)
 
@@ -604,7 +606,7 @@ If you encounter issues not covered here:
 
 ## Uninstallation
 
-To uninstall the Ollama Desktop App:
+To uninstall DeskLlama:
 
 1. **Stop the application** if running
 2. **Delete the project directory**:

@@ -1,7 +1,7 @@
 /**
  * Type Definitions
  * 
- * Shared TypeScript interfaces and types for the Ollama Desktop App.
+ * Shared TypeScript interfaces and types for DeskLlama.
  */
 
 // Message Types
@@ -189,7 +189,6 @@ export interface CodeExecutionResult {
 export interface SidebarProps {
   selectedModel: string;
   onModelChange: (model: string) => void;
-  onClearConversation: () => void;
   isOpen: boolean;
   onToggle: () => void;
   onManageDocuments: () => void;

@@ -18,6 +18,10 @@ let expressServer;
 
 // Start Express server for backend API
 function startExpressServer() {
+  const userDataDir = app.getPath('userData');
+  process.env.OLLAMA_DESKTOP_USER_DATA = userDataDir;
+  LOG('Writable app data (conversations, documents, etc.):', userDataDir);
+
   LOG('Starting Express server on port 3001...');
   const expressApp = express();
   expressApp.use(cors());

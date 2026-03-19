@@ -111,10 +111,8 @@ export default function ModelDocumentsPanel({ selectedModel, onDocumentsChange }
 
   if (!selectedModel) {
     return (
-      <div className="mt-4 p-3 bg-dark-bg rounded-lg border border-dark-border">
-        <p className="text-sm text-dark-muted text-center">
-          Select a model to assign documents
-        </p>
+      <div className="rounded-lg border border-white/[0.08] bg-dark-elevated p-2.5">
+        <p className="text-center font-mono text-2xs text-dark-muted">Select a model for RAG assignments</p>
       </div>
     );
   }
@@ -123,55 +121,53 @@ export default function ModelDocumentsPanel({ selectedModel, onDocumentsChange }
 
   return (
     <>
-      <div className="mt-4 border-t border-dark-border pt-4">
-        <h3 className="text-sm font-semibold text-dark-text mb-2">
-          Documents for "{selectedModel}"
-        </h3>
-        <p className="text-xs text-dark-muted mb-3">
-          Select which documents this model can access for RAG
-        </p>
+      <div className="space-y-2">
+        <div>
+          <h3 className="text-[11px] font-bold uppercase tracking-wide text-dark-dim">RAG · {selectedModel}</h3>
+          <p className="mt-0.5 font-mono text-2xs text-dark-muted">Toggle docs for this model</p>
+        </div>
 
         {loadingDocuments ? (
-          <div className="text-center text-dark-muted py-4 text-sm">Loading documents...</div>
+          <div className="py-3 text-center font-mono text-2xs text-dark-muted">Loading…</div>
         ) : documents.length === 0 ? (
-          <div className="text-center text-dark-muted py-4 bg-dark-bg rounded-lg border border-dark-border text-sm">
-            <p>No documents uploaded yet.</p>
-            <p className="text-xs mt-1">Upload documents to enable RAG</p>
+          <div className="rounded-lg border border-white/[0.08] bg-dark-elevated py-3 text-center text-2xs text-dark-muted">
+            <p>No uploads yet</p>
+            <p className="mt-1 font-mono text-[10px]">Open Documents to add files</p>
           </div>
         ) : (
           <>
-            <div className="space-y-2 max-h-64 overflow-y-auto">
+            <div className="chat-scroll max-h-48 space-y-1.5 overflow-y-auto">
               {documents.map((doc) => {
                 const isAssigned = doc.assignedModels?.includes(selectedModel) || false;
                 return (
                   <label
                     key={doc.id}
-                    className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors text-sm ${
+                    className={`flex cursor-pointer items-center gap-2 rounded-lg border p-2 text-xs transition-colors ${
                       isAssigned
-                        ? 'bg-blue-600/20 border border-blue-500'
-                        : 'bg-dark-bg hover:bg-dark-border border border-dark-border'
+                        ? 'border-accent-mid bg-accent-dim'
+                        : 'border-white/[0.08] bg-dark-elevated hover:border-white/[0.12]'
                     }`}
                   >
                     <input
                       type="checkbox"
                       checked={isAssigned}
                       onChange={(e) => handleDocumentToggle(doc.id, isAssigned)}
-                      className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 flex-shrink-0"
+                      className="h-3.5 w-3.5 shrink-0 rounded border-dark-border text-accent focus:ring-accent"
                     />
-                    <span className="text-lg flex-shrink-0">{getFileIcon(doc.type)}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-medium text-dark-text truncate">{doc.name}</div>
-                      <div className="text-xs text-dark-muted">
-                        {isAssigned ? '✓ Assigned' : 'Not assigned'}
+                    <span className="flex-shrink-0 text-base leading-none opacity-90">{getFileIcon(doc.type)}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-medium text-dark-text">{doc.name}</div>
+                      <div className="font-mono text-[10px] text-dark-muted">
+                        {isAssigned ? '✓ RAG' : 'off'}
                       </div>
                     </div>
                   </label>
                 );
               })}
             </div>
-            
-            <div className="mt-3 text-xs text-dark-muted text-center">
-              {assignedCount} of {documents.length} documents assigned
+
+            <div className="text-center font-mono text-[10px] text-dark-dim">
+              {assignedCount}/{documents.length} for model
             </div>
           </>
         )}

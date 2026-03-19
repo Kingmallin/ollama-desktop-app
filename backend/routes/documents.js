@@ -6,9 +6,10 @@ const path = require('path');
 const { spawn } = require('child_process');
 const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
+const { getWritableRoot } = require('../paths');
 
-// Document storage directory
-const DOCUMENTS_DIR = path.join(__dirname, '../../documents');
+// Document storage directory (userData when packaged)
+const DOCUMENTS_DIR = path.join(getWritableRoot(), 'documents');
 const METADATA_FILE = path.join(DOCUMENTS_DIR, 'metadata.json');
 
 // Ensure documents directory exists

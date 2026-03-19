@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
 ## Your Capabilities:
 1. **Code Execution**: Provide executable Python or JavaScript in ONE code block (triple backticks + language).
-2. **Image Generation (tool)**: When users ask for an image, write a short user-facing description of what the image will show (this is what the user sees), then output exactly [IMAGE: prompt] where the prompt is the exact text sent to the image generator. The text inside [IMAGE: ...] is never shown to the user—only to the image model—so it must be a clear, descriptive scene (e.g. "a woman merged with circuits and digital patterns, human and AI integration"). Do not put meta phrases inside [IMAGE: ...] (no "this image shows" or "the user asked for"). Example: user says "draw a cat" → you write a friendly sentence, then [IMAGE: a cute cat sitting on a windowsill, soft lighting].
+2. **Image generation (tool call only)**: The app runs the image generator only when **(a)** the user clearly asked for a drawing/picture/image (e.g. “draw…”, “generate an image…”, “a photo of…”), **and** **(b)** you output \`[IMAGE: scene description]\`. If the user only asked for code, ideas, or something vague like “something awesome”, **do not** output \`[IMAGE:]\`. Plain English without \`[IMAGE:]\` never triggers the tool. For real image requests: short user-visible line, then \`[IMAGE: …]\` — plain language only, never HTML inside the brackets.
 3. **Format**: One request = one code block. Optional short explanation before or after the block only.
 
 ## Response Guidelines:
@@ -54,8 +54,8 @@ if __name__ == "__main__":
 - Use proper markdown; code blocks need the language tag (e.g. \`\`\`python or \`\`\`javascript).
 
 ## Available Tools:
-- Code execution (Python, JavaScript) — one block per solution
-- Image generation: write a brief description for the user, then [IMAGE: exact prompt for the image model—clear, descriptive, no meta wording]`,
+- Code execution (Python, JavaScript) — one \`\`\` block per solution
+- Image generation — **invoke only with** \`[IMAGE: prompt]\`; no other wording triggers the tool`,
   },
   {
     id: 'coding',
@@ -92,7 +92,7 @@ export const getSystemPrompt = (hasDocuments: boolean = false, hasImageGeneratio
     ? `\n\n## Document Context:\nYou have access to documents that may contain relevant information. When the user asks questions, use the document context provided in their messages to answer accurately. Always reference the documents when your answer is based on information from them.`
     : '';
   const imageGenerationInstruction = hasImageGeneration
-    ? `\n\n## Image Generation (tool):\nWhen the user asks for an image: (1) Write a short, user-facing description of what the image depicts (the user sees this). (2) Output exactly [IMAGE: prompt] where the prompt is the exact text sent to the image generator—never shown to the user. The prompt must be a clear, descriptive scene suitable for image generation (no "this image shows" or "user asked for"). Example: "draw a sunset" → "Here's a sunset for you." then [IMAGE: vivid sunset over the ocean, orange and pink sky, dramatic clouds].`
+    ? `\n\n## Image generation (tool):\nTo generate an image you **must** include \`[IMAGE: prompt]\` in your reply. Describing the image in prose alone does not run the tool. The bracket text is hidden from the user and sent to the image model—use a clear scene description, not HTML.`
     : '';
   return {
     systemPrompt: basePrompt + documentInstruction + imageGenerationInstruction,
@@ -128,7 +128,7 @@ export const buildMessagesWithSystemPrompt = (
     ? `\n\n## Document Context:\nYou have access to documents that may contain relevant information. When the user asks questions, use the document context provided in their messages to answer accurately. Always reference the documents when your answer is based on information from them.`
     : '';
   const imageInstruction = hasImageGeneration
-    ? `\n\n## Image Generation:\nGive the user a short description of the image, then output [IMAGE: exact prompt for the image model]. The [IMAGE: ...] text is hidden from the user; keep it clear and descriptive for the generator.`
+    ? `\n\n## Image generation:\nInvoke only with \`[IMAGE: prompt]\`. Prose alone does not trigger generation.`
     : '';
 
   const imageModels = availableModels.filter(
