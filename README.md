@@ -114,15 +114,17 @@ This will:
 
 ## Building
 
-Build for production:
+Build the React frontend for production:
 ```bash
 npm run build
 ```
 
-Build Electron app:
+Build the Windows installer (.exe):
 ```bash
-npm run build:electron
+npm run dist
 ```
+
+This creates an installer in the `release/` folder. You can also download pre-built installers from the [Releases page](https://github.com/Kingmallin/ollama-desktop-app/releases).
 
 ## Usage
 

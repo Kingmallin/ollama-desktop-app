@@ -578,7 +578,7 @@ ipcMain.handle('read-file', async (event, filePath) => {
 });
 
 function createWindow() {
-  const isDev = process.env.NODE_ENV !== 'production';
+  const isDev = !app.isPackaged && process.env.NODE_ENV !== 'production';
 
   // Center window on primary display (avoids off-screen window on WSLg/multi-monitor)
   const primaryDisplay = screen.getPrimaryDisplay();

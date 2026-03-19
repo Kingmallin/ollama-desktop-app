@@ -226,6 +226,15 @@ sudo apt install git
 
 ### Windows
 
+#### Option A: Easy Install (Recommended for most users)
+
+1. **Download the installer** from the [Releases page](https://github.com/Kingmallin/ollama-desktop-app/releases)
+2. **Run the `.exe` installer** and follow the setup wizard
+3. **Launch** "Ollama Desktop App" from the Start menu or desktop shortcut
+4. **Ensure Ollama is installed** and running ([ollama.ai/download](https://ollama.ai/download))
+
+#### Option B: Developer Install (from source)
+
 1. **Open PowerShell or Command Prompt**
 
 2. **Clone the repository** (if using Git):
