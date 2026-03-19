@@ -44,6 +44,7 @@
   "build": {
     "appId": "com.ollama.desktop",
     "productName": "Ollama Desktop App",
+    "publish": null,
     "directories": {
       "output": "release"
     },
