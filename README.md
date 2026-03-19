@@ -126,6 +126,13 @@ npm run dist
 
 This creates an installer in the `release/` folder. You can also download pre-built installers from the [Releases page](https://github.com/Kingmallin/ollama-desktop-app/releases).
 
+**Windows SmartScreen (“Unknown publisher”)**: Installers are only trusted by SmartScreen after they are signed with a **publicly trusted code signing certificate**. Unsigned builds still work: users choose **More info → Run anyway**. For releases built in GitHub Actions, signing is automatic once you add repository secrets:
+
+- `WINDOWS_CODESIGN_PFX_BASE64` — your `.pfx` / `.p12` file, base64-encoded  
+- `WINDOWS_CODESIGN_PFX_PASSWORD` — the PFX password  
+
+Locally you can sign the same way by setting [`CSC_LINK`](https://www.electron.build/code-signing) and `CSC_KEY_PASSWORD` (or `CSC_NAME` + token flows if your CA documents them) before `npm run dist`.
+
 ## Usage
 
 1. **Select a Model**: Use the dropdown to select an installed Ollama model, or install a new one using the "Install New Model" field.

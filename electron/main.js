@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, dialog, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, dialog, screen, shell } = require('electron');
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
@@ -52,7 +52,7 @@ function startExpressServer() {
 async function fetchModels() {
   return new Promise((resolve, reject) => {
     const options = {
-      hostname: 'localhost',
+      hostname: '127.0.0.1',
       port: 3001,
       path: '/api/ollama/models',
       method: 'GET'
@@ -86,7 +86,7 @@ async function deleteModel(modelName) {
   return new Promise((resolve, reject) => {
     const encodedModelName = encodeURIComponent(modelName);
     const options = {
-      hostname: 'localhost',
+      hostname: '127.0.0.1',
       port: 3001,
       path: `/api/ollama/models/${encodedModelName}`,
       method: 'DELETE'
@@ -366,6 +366,13 @@ function createMenu() {
 // Listen for model changes to refresh menu
 ipcMain.on('refresh-models-menu', () => {
   createMenu();
+});
+
+ipcMain.handle('open-external', async (event, url) => {
+  if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) {
+    throw new Error('Invalid URL');
+  }
+  await shell.openExternal(url);
 });
 
 // Handle file dialog requests

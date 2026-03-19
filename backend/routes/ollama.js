@@ -3,9 +3,9 @@ const router = express.Router();
 const { spawn } = require('child_process');
 const http = require('http');
 const { URL } = require('url');
+const { getOllamaHost } = require('../ollamaHost');
 
-// Ollama API base URL - uses local Ollama instance
-const OLLAMA_HOST = process.env.OLLAMA_HOST || 'http://localhost:11434';
+const OLLAMA_HOST = getOllamaHost();
 
 // Helper to make HTTP GET request
 function httpGet(url) {
@@ -122,6 +122,35 @@ function httpPostStream(url, body, onChunk) {
   });
 }
 
+// Lightweight health check for UI (always HTTP 200; body describes reachability)
+router.get('/status', async (req, res) => {
+  try {
+    const data = await httpGet(`${OLLAMA_HOST}/api/tags`);
+    const models = data.models || [];
+    res.json({
+      available: true,
+      message:
+        models.length === 0
+          ? 'Ollama is running. Install a model from the bar above or run ollama pull <name> in a terminal.'
+          : `Ollama is running — ${models.length} model(s) ready.`,
+      modelsCount: models.length,
+    });
+  } catch (error) {
+    const message = error.message || String(error);
+    const unreachable = /ECONNREFUSED|ENOTFOUND|ETIMEDOUT|ECONNRESET/i.test(message);
+    res.json({
+      available: false,
+      message: unreachable
+        ? 'Ollama is not running or is not installed.'
+        : 'Could not talk to Ollama.',
+      installationHint: unreachable
+        ? '1) Download and install Ollama from ollama.com\n2) Open the Ollama app from the Start menu and keep it running (system tray on Windows)\n3) Click “Check again” below'
+        : String(message),
+      code: unreachable ? 'OLLAMA_UNREACHABLE' : 'OLLAMA_ERROR',
+    });
+  }
+});
+
 // Get all installed models
 router.get('/models', async (req, res) => {
   try {
@@ -131,7 +160,16 @@ router.get('/models', async (req, res) => {
     res.json({ models: data.models || [] });
   } catch (error) {
     console.error('Error fetching models:', error);
-    res.status(500).json({ error: 'Failed to fetch models', message: error.message });
+    const message = error.message || String(error);
+    const unreachable = /ECONNREFUSED|ENOTFOUND|ETIMEDOUT|ECONNRESET/i.test(message);
+    res.status(unreachable ? 503 : 500).json({
+      error: 'Failed to fetch models',
+      message,
+      code: unreachable ? 'OLLAMA_UNREACHABLE' : 'OLLAMA_ERROR',
+      hint: unreachable
+        ? 'Ollama is not reachable. Install it from https://ollama.com/download, then start the Ollama app (check the system tray on Windows) and click Refresh.'
+        : undefined,
+    });
   }
 });
 

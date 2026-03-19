@@ -229,9 +229,11 @@ sudo apt install git
 #### Option A: Easy Install (Recommended for most users)
 
 1. **Download the installer** from the [Releases page](https://github.com/Kingmallin/ollama-desktop-app/releases)
-2. **Run the `.exe` installer** and follow the setup wizard
+2. **Run the `.exe` installer** and follow the setup wizard  
+   - If **Microsoft Defender SmartScreen** says the app is unrecognized, click **More info**, then **Run anyway**. That prompt appears on **unsigned** builds; a **code-signed** release will show your publisher name instead.
+   - The installer does **not** include **Ollama** or **Python**. Install Ollama separately if prompted in the app; use Python only if you want local image generation features.
 3. **Launch** "Ollama Desktop App" from the Start menu or desktop shortcut
-4. **Ensure Ollama is installed** and running ([ollama.ai/download](https://ollama.ai/download))
+4. **Install and start [Ollama](https://ollama.com/download)** (separate download). Leave the Ollama app running (Windows system tray). The desktop app connects to `127.0.0.1:11434`.
 
 #### Option B: Developer Install (from source)
 

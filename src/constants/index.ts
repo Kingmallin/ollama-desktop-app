@@ -8,13 +8,14 @@
 // API Configuration
 export const API_CONFIG = {
   BASE_URL: 'http://localhost:3001',
-  OLLAMA_HOST: (import.meta.env?.VITE_OLLAMA_HOST as string | undefined) || 'http://localhost:11434',
+  OLLAMA_HOST: (import.meta.env?.VITE_OLLAMA_HOST as string | undefined) || 'http://127.0.0.1:11434',
 } as const;
 
 // API Endpoints
 export const API_ENDPOINTS = {
   // Ollama endpoints
   OLLAMA: {
+    STATUS: `${API_CONFIG.BASE_URL}/api/ollama/status`,
     MODELS: `${API_CONFIG.BASE_URL}/api/ollama/models`,
     INSTALL: `${API_CONFIG.BASE_URL}/api/ollama/install`,
     CHAT_STREAM: `${API_CONFIG.BASE_URL}/api/ollama/chat/stream`,
@@ -147,6 +148,11 @@ export const UI_CONFIG = {
 } as const;
 
 // Storage Keys (for localStorage, etc.)
+/** sessionStorage — per-window session only */
+export const SESSION_STORAGE_KEYS = {
+  OLLAMA_SETUP_PROMPT_SKIPPED: 'ollama-setup-prompt-skipped',
+} as const;
+
 export const STORAGE_KEYS = {
   CONVERSATIONS: 'ollama-desktop-conversations',
   SETTINGS: 'ollama-desktop-settings',

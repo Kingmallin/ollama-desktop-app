@@ -36,5 +36,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   removeFileDropListener: () => {
     window.removeEventListener('electron-file-drop', () => {});
     ipcRenderer.removeAllListeners('files-dropped');
-  }
+  },
+  openExternal: (url) => ipcRenderer.invoke('open-external', url),
 });

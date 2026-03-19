@@ -3,5 +3,6 @@
 interface Window {
   electronAPI?: {
     platform: string;
+    openExternal?: (url: string) => Promise<void>;
   };
 }

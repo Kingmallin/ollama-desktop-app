@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import ChatInterface from './components/ChatInterface';
 import ModelManager from './components/ModelManager';
+import OllamaSetupPromptModal from './components/OllamaSetupPromptModal';
 import DocumentsPanel from './components/DocumentsPanel';
 import { buildMessagesWithSystemPrompt } from './utils/prompts';
-import { API_ENDPOINTS, LIMITS } from './constants';
+import { API_ENDPOINTS, LIMITS, SESSION_STORAGE_KEYS } from './constants';
 import SystemPromptSettings from './components/SystemPromptSettings';
 import { getStoredSystemPromptPresetId, getStoredSystemPromptCustom, CUSTOM_PRESET_ID } from './components/SystemPromptSettings';
 import type { Message, Document, ConversationSummary } from './types';
@@ -26,6 +27,7 @@ function App() {
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [conversationsLoading, setConversationsLoading] = useState(false);
+  const [showOllamaSetupPrompt, setShowOllamaSetupPrompt] = useState(false);
 
   const handleSendMessage = async (content: string) => {
     if (!selectedModel || !content.trim()) return;
@@ -551,6 +553,31 @@ function App() {
     loadConversations();
   }, []);
 
+  /** First-launch style prompt when Ollama is missing (same category as Image Settings → Python). */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (sessionStorage.getItem(SESSION_STORAGE_KEYS.OLLAMA_SETUP_PROMPT_SKIPPED)) return;
+
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      try {
+        const res = await fetch(API_ENDPOINTS.OLLAMA.STATUS);
+        const data = await res.json();
+        if (cancelled) return;
+        if (!data.available) {
+          setShowOllamaSetupPrompt(true);
+        }
+      } catch {
+        if (!cancelled) setShowOllamaSetupPrompt(true);
+      }
+    }, 900);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, []);
+
   // Fetch documents on mount and when model changes
   useEffect(() => {
     const fetchDocuments = async () => {
@@ -750,6 +777,17 @@ function App() {
           } catch (error) {
             console.error('Error fetching documents:', error);
           }
+        }}
+      />
+      <OllamaSetupPromptModal
+        isOpen={showOllamaSetupPrompt}
+        onDismissForSession={() => {
+          sessionStorage.setItem(SESSION_STORAGE_KEYS.OLLAMA_SETUP_PROMPT_SKIPPED, '1');
+          setShowOllamaSetupPrompt(false);
+        }}
+        onOllamaAvailable={() => {
+          setShowOllamaSetupPrompt(false);
+          setModelRefreshTrigger((t) => t + 1);
         }}
       />
     </div>
